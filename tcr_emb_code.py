@@ -133,16 +133,25 @@ def prototypes_prep(data):
     data['subset'] =  '.'
     return data
 
-def data_filter_for_prototypes(data, prototypes_path):
+#def data_filter_for_prototypes(data, prototypes_path):
+#    prototypes=pd.read_csv(prototypes_path, sep = '\t')
+#    data = data[data['v_gene'].isin(list(prototypes['v']))].reset_index(drop=True)
+#    data = data[data['j_gene'].isin(list(prototypes['j']))].reset_index(drop=True)
+#    return data
+    
+    
+def data_filter_for_prototypes(data, prototypes_path, v_gene='v_gene',j_gene='j_gene'):
     prototypes=pd.read_csv(prototypes_path, sep = '\t')
-    data = data[data['v_gene'].isin(list(prototypes['v']))].reset_index(drop=True)
-    data = data[data['j_gene'].isin(list(prototypes['j']))].reset_index(drop=True)
+    data = data[data[v_gene].isin(list(prototypes['v']))].reset_index(drop=True)
+    data = data[data[j_gene].isin(list(prototypes['j']))].reset_index(drop=True)
     return data
+    
 
-def mir_clac(data, file_path_prefix, file_date, chain, prototypes_path):
-    data_c_mir = columns_prep(data)
+def mir_clac(data, file_path_prefix, file_date, chain, prototypes_path, columns_prep=True):
+    if columns_prep:
+        data = columns_prep(data)
     file_path = 'data_scripts/' + file_path_prefix + file_date +'.txt'
-    data_c_mir.to_csv(file_path, sep='\t', index = False)
+    data.to_csv(file_path, sep='\t', index = False)
     
     mir_path = "mir-1.0-SNAPSHOT.jar"
     species = "Human"
@@ -152,7 +161,24 @@ def mir_clac(data, file_path_prefix, file_date, chain, prototypes_path):
     command = "java -Xmx100G -cp " + mir_path + " com.antigenomics.mir.scripts.Examples cdr3aavj-pairwise-dist " + "-S " + species + " -G " + chain + " -F VDJtools " + "-I " + prototypes_path + " " + input_data_path + " -O " + output_path
     os.system(command)
 
-def mir_dists_format(data_dists_raw, data):
+#def mir_dists_format(data_dists_raw, data):
+#    if len(data_dists_raw['id1'].drop_duplicates()) < len(data_dists_raw['id2'].drop_duplicates()):
+#        first_index = 'id1'
+#        second_index = 'id2'
+#    else:
+#        first_index = 'id2'
+#        second_index = 'id1'            
+#    data_dists_raw['cdr3_idx'] = 'cdr3_' + data_dists_raw[first_index].astype(str)
+#    data_dists_raw['v_idx'] = 'v_' + data_dists_raw[first_index].astype(str)
+#    data_dists_raw['j_idx'] = 'j_' + data_dists_raw[first_index].astype(str)
+#    data_dists_raw = pd.concat([data_dists_raw.pivot(index=second_index,columns='cdr3_idx',values='cdr3.score').reset_index(),
+#                     data_dists_raw.pivot(index=second_index,columns='v_idx',values='v.score').reset_index(),
+#                     data_dists_raw.pivot(index=second_index,columns='j_idx',values='j.score').reset_index()], axis=1)
+#    data_dists_raw = data_dists_raw.drop(second_index,axis=1)
+#    data_dists_raw = data_dists_raw.set_index(data['barcode'],drop = True)
+#    return data_dists_raw
+
+def mir_dists_format(data_dists_raw, data, index_col):
     if len(data_dists_raw['id1'].drop_duplicates()) < len(data_dists_raw['id2'].drop_duplicates()):
         first_index = 'id1'
         second_index = 'id2'
@@ -166,7 +192,7 @@ def mir_dists_format(data_dists_raw, data):
                      data_dists_raw.pivot(index=second_index,columns='v_idx',values='v.score').reset_index(),
                      data_dists_raw.pivot(index=second_index,columns='j_idx',values='j.score').reset_index()], axis=1)
     data_dists_raw = data_dists_raw.drop(second_index,axis=1)
-    data_dists_raw = data_dists_raw.set_index(data['barcode'],drop = True)
+    data_dists_raw = data_dists_raw.set_index(data[index_col],drop = True)
     return data_dists_raw
    
     

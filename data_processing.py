@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import label_binarize
+from sklearn import preprocessing
 from sklearn.feature_selection import f_classif
 
 def read_barcodes(barcodes_file):
@@ -148,6 +149,7 @@ def pivot_data(data):
     data = data.fillna(0)
     return data
 
+## analysis
 def pca(data, n):
     
     if type(n) == int:
