@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import label_binarize
+from sklearn.feature_selection import f_classif
 
 def read_barcodes(barcodes_file):
     barcodes = pd.read_csv(barcodes_file, sep = '\t',header = None)
@@ -28,6 +29,31 @@ def read_features(features_file):
     features['feature_id'] = features.index
     features['feature_id'] = pd.to_numeric(features['feature_id'])
     return features
+
+def get_features_from_h5(filename):
+    with tables.open_file(filename, 'r') as f:
+        mat_group = f.get_node(f.root, 'matrix')
+         
+        feature_ref = {}
+        feature_group = f.get_node(mat_group, 'features')
+        feature_ids = getattr(feature_group, 'id').read()
+        feature_names = getattr(feature_group, 'name').read()
+        feature_types = getattr(feature_group, 'feature_type').read()
+        feature_ref['id'] = feature_ids
+        feature_ref['name'] = feature_names
+        feature_ref['feature_type'] = feature_types
+        tag_keys = getattr(feature_group, '_all_tag_keys').read()
+        for key in tag_keys:
+            key = key.decode("utf-8")
+            feature_ref[key] = getattr(feature_group, key).read()
+        features = pd.DataFrame(feature_ref)
+        features['id'] = features['id'].str.decode('utf-8')
+        features['name'] = features['name'].str.decode('utf-8')
+        features['feature_type'] = features['feature_type'].str.decode('utf-8')
+        features['genome'] = features['genome'].str.decode('utf-8')
+        
+        return features
+
 
 def read_matrix(matrix_file):
     matrix = pd.read_csv(matrix_file,sep = '\t')
@@ -116,6 +142,11 @@ def norm_logp(data, count_col):
     data[count_col]= data[count_col].apply(lambda x : math.log1p(x))
     return data    
 
+def pivot_data(data):
+    data = data[['count','barcode','value']]
+    data = data.pivot_table('count','barcode','value')
+    data = data.fillna(0)
+    return data
 
 def pca(data, n):
     
@@ -149,3 +180,17 @@ def count_roc_auc(y_test_curv,y_pred_curv):
         fpr[i], tpr[i], _ = roc_curve(y_test_curv[:,i],y_pred_curv[:,i])
         roc_auc[i] = auc(fpr[i], tpr[i])
     return roc_auc
+
+def cat_lable(labels):
+    le = preprocessing.LabelEncoder()
+    le.fit(labels)
+    return le.transform(labels)
+
+def pc_anova(data,pc_n, group):
+    pc_anova = pd.DataFrame(columns=['pc','F','pvalue'])
+
+    for n in range(0,pc_n):
+        F,pval = f_classif(np.array(data[n]).reshape(-1,1),data[group])
+        pc_anova = pc_anova.append({'pc': n ,'F': float(F),'pvalue':float(pval)},ignore_index=True)
+    
+    return pc_anova
