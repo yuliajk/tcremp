@@ -196,3 +196,16 @@ def pc_anova(data,pc_n, group):
         pc_anova = pc_anova.append({'pc': n ,'F': float(F),'pvalue':float(pval)},ignore_index=True)
     
     return pc_anova
+
+def binominal_test(binom_df, cluster, group):
+    binom_df['total_cluster'] = binom_df.groupby(cluster)[cluster].transform('count')
+    binom_df['total_group'] = binom_df.groupby(group)[group].transform('count')
+    binom_df['count_mached'] = binom_df.groupby([group,cluster])[group].transform('count')
+    binom_df['fraction_mached'] = binom_df['count_mached']/binom_df['total_cluster']
+    binom_df['fraction_mached_exp'] = binom_df['total_group']/len(binom_df.index)
+    binom_df['p_value'] = binom_df.apply(lambda row: stats.binom_test(row['count_mached'], n=row['total_cluster'], p=row['fraction_mached_exp'], alternative='greater'),axis=1)
+    binom_df = binom_df[binom_df['fraction_mached']>binom_df['fraction_mached_exp']]
+    binom_df_cluster = binom_df[[group, cluster,'total_cluster','total_group','count_mached','fraction_mached','fraction_mached_exp','p_value']].drop_duplicates().sort_values('p_value')
+    binom_df_cluster = binom_df_cluster.sort_values(['fraction_mached'],ascending=False)
+    binom_df_cluster = binom_df_cluster.drop_duplicates('cluster',keep='first')
+    return binom_df_cluster

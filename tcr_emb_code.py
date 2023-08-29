@@ -23,10 +23,10 @@ def filter_table(data,chain):
     data = data[-(data['j_gene']== "None")]
     data = data[-(data['j_gene']== "")]
     data = data[-(data['v_gene']== "")]
-    data['v.segm'] = data['v_segm'].str.split(',', 1, expand=True)[0]
-    data['j.segm'] = data['j_segm'].str.split(',', 1, expand=True)[0]
-    data['v.segm'] = data['v_segm'].str.split('*', 1, expand=True)[0]
-    data['j.segm'] = data['j_segm'].str.split('*', 1, expand=True)[0]
+    data['v_gene'] = data['v_gene'].str.split(',', 1, expand=True)[0]
+    data['j_gene'] = data['j_gene'].str.split(',', 1, expand=True)[0]
+    data['v_gene'] = data['v_gene'].str.split('*', 1, expand=True)[0]
+    data['j_gene'] = data['j_gene'].str.split('*', 1, expand=True)[0]
     data = data[-data['v_gene'].str.contains(',')]
     data = data[-data['j_gene'].str.contains(',')]
 
@@ -147,8 +147,8 @@ def data_filter_for_prototypes(data, prototypes_path, v_gene='v_gene',j_gene='j_
     return data
     
 
-def mir_clac(data, file_path_prefix, file_date, chain, prototypes_path, columns_prep=True):
-    if columns_prep:
+def mir_clac(data, file_path_prefix, file_date, chain, prototypes_path, need_columns_prep=True):
+    if need_columns_prep:
         data = columns_prep(data)
     file_path = 'data_scripts/' + file_path_prefix + file_date +'.txt'
     data.to_csv(file_path, sep='\t', index = False)
@@ -178,8 +178,8 @@ def mir_clac(data, file_path_prefix, file_date, chain, prototypes_path, columns_
 #    data_dists_raw = data_dists_raw.set_index(data['barcode'],drop = True)
 #    return data_dists_raw
 
-def mir_dists_format(data_dists_raw, data, index_col):
-    if len(data_dists_raw['id1'].drop_duplicates()) < len(data_dists_raw['id2'].drop_duplicates()):
+def mir_dists_format(data_dists_raw, data, index_col,smaller = False):
+    if ((len(data_dists_raw['id1'].drop_duplicates()) < len(data_dists_raw['id2'].drop_duplicates())) and (not smaller)) or ((len(data_dists_raw['id1'].drop_duplicates()) > len(data_dists_raw['id2'].drop_duplicates())) and smaller):
         first_index = 'id1'
         second_index = 'id2'
     else:
@@ -195,4 +195,3 @@ def mir_dists_format(data_dists_raw, data, index_col):
     data_dists_raw = data_dists_raw.set_index(data[index_col],drop = True)
     return data_dists_raw
    
-    
