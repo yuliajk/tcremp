@@ -7,8 +7,8 @@ import sys
 sys.path.append("../")
 sys.path.append("mirpy/")
 from mir.common import parser, Repertoire, SegmentLibrary
-from mir.distances import ClonotypeAligner, AlignGermline
-from mir.comparative import DenseMatch
+from mir.distances import ClonotypeAligner
+from mir.comparative import DenseMatcher
 
 from collections import Counter
 import time
@@ -19,9 +19,9 @@ from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import label_binarize
 
-import ml_utils
+import tcremb.ml_utils
 
-import motif_logo
+import tcremb.motif_logo
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -43,9 +43,9 @@ class TCRemb:
         self.clstr_labels ={}
         self.clsf_labels = {}
         
-        self.__tcr_columns = ['cdr3','v','j','chain']
-        self.__tcr_columns_paired = {'TRA':['a_cdr3','TRAV','TRAJ'],'TRB':['b_cdr3','TRBV','TRBJ']}
-        self.__rename_tcr_columns_paired = {'TRA':{'a_cdr3':'cdr3','TRAV':'v','TRAJ':'j','cloneId_TRA':'cloneId'},'TRB':{'b_cdr3':'cdr3','TRBV':'v','TRBJ':'j','cloneId_TRB':'cloneId'}}
+        self.__tcr_columns = ['cdr3aa','v','j','chain']
+        self.__tcr_columns_paired = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ']}
+        self.__rename_tcr_columns_paired = {'TRA':{'a_cdr3aa':'cdr3aa','TRAV':'v','TRAJ':'j','cloneId_TRA':'cloneId'},'TRB':{'b_cdr3aa':'cdr3aa','TRBV':'v','TRBJ':'j','cloneId_TRB':'cloneId'}}
         self.__clonotype_id = 'cloneId'
         self.__data_id= 'data_id'
         self.__annotation_id = 'annotId'
@@ -241,13 +241,13 @@ class TCRemb_clustering():
     def __plot_logo(self, clstr_data, chain, c, list_ax):
         
         cluster_df = clstr_data[clstr_data['cluster']==c]
-        lengs = cluster_df['cdr3_len'].drop_duplicates()
+        lengs = cluster_df['cdr3aa_len'].drop_duplicates()
         fr_matched = cluster_df['fraction_matched'].drop_duplicates().reset_index(drop=True)[0]
         epi = cluster_df['label_cluster'].drop_duplicates().reset_index(drop=True)[0]
         total_cl = cluster_df['total_cluster'].drop_duplicates().reset_index(drop=True)[0]
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
-            seqs = cluster_df[cluster_df['cdr3_len']==l]['cdr3']
+            seqs = cluster_df[cluster_df['cdr3aa_len']==l]['cdr3aa']
             if len(seqs) > 4:
                 freq = np.zeros((len(alphabet), l))
                 for pos in range(l):
@@ -256,7 +256,7 @@ class TCRemb_clustering():
                 freq_res = freq/freq.sum(axis=0, keepdims=True)
                 motif = pd.DataFrame(freq_res,index=alphabet)
                 motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[0])
-                list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3: {len(seqs)}")
+                list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3aa: {len(seqs)}")
         plot_v_j = clstr_data[clstr_data['cluster']==c]
         plot_v_j['count']=plot_v_j.groupby('v').transform('size')
         plot_v_j = plot_v_j.sort_values('v')
@@ -275,10 +275,10 @@ class TCRemb_clustering():
         fr_matched = cluster_df['fraction_matched'].drop_duplicates()['fraction_matched'].reset_index(drop=True)[0]
         epi = cluster_df['label_cluster'].drop_duplicates().reset_index(drop=True)[0]
         total_cl = cluster_df['total_cluster'].drop_duplicates().reset_index(drop=True)[0]
-        lengs = cluster_df['a_cdr3_len'].drop_duplicates()
+        lengs = cluster_df['a_cdr3aa_len'].drop_duplicates()
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
-            seqs = cluster_df[cluster_df['a_cdr3_len']==l]['a_cdr3']
+            seqs = cluster_df[cluster_df['a_cdr3aa_len']==l]['a_cdr3aa']
             if len(seqs) > 4:
                 freq = np.zeros((len(alphabet), l))
                 for pos in range(l):
@@ -287,23 +287,23 @@ class TCRemb_clustering():
                 freq_res = freq/freq.sum(axis=0, keepdims=True)
                 motif = pd.DataFrame(freq_res,index=alphabet)
                 motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[0])
-                list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3: {len(seqs)}")
+                list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3aa: {len(seqs)}")
     
         cluster_df = clstr_data[clstr_data['cluster']==c]
-        lengs = cluster_df['b_cdr3_len'].drop_duplicates()
+        lengs = cluster_df['b_cdr3aa_len'].drop_duplicates()
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
-            seqs = cluster_df[cluster_df['b_cdr3_len']==l]['b_cdr3']
+            seqs = cluster_df[cluster_df['b_cdr3aa_len']==l]['b_cdr3aa']
             if len(seqs) > 4:
                 freq = np.zeros((len(alphabet), l))
-                #print("CDR3 length: {} \nCount of cdr3: {}".format(l,len(seqs)))
+                #print("cdr3aa length: {} \nCount of cdr3aa: {}".format(l,len(seqs)))
                 for pos in range(l):
                     for s in seqs:
                         freq[alphabet.index(s[pos]), pos] +=1
                 freq_res = freq/freq.sum(axis=0, keepdims=True)
                 motif = pd.DataFrame(freq_res,index=alphabet)
                 motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[1])
-                list_ax[1].set_title(f"TRB. CDR3 length: {l}")
+                list_ax[1].set_title(f"TRB. cdr3aa length: {l}")
     
         plot_v_j = clstr_data[clstr_data['cluster']==c]
         plot_v_j['count']=plot_v_j.groupby('TRAV').transform('size')
@@ -333,7 +333,7 @@ class TCRemb_clustering():
             plt_clusters = list(self.binom_res[chain].sort_values('p_value').head(n_head_clstrs)['cluster'])
             clstr_data = pd.merge(self.clstr_labels[chain],data.annot[chain])
         
-            clstr_data['cdr3_len'] = clstr_data['cdr3'].apply(len)
+            clstr_data['cdr3aa_len'] = clstr_data['cdr3aa'].apply(len)
         
             n_rows = math.ceil(len(plt_clusters)/4) +1
             fig = plt.figure(figsize=(8*n_rows,28))
@@ -354,8 +354,8 @@ class TCRemb_clustering():
             plt_clusters = list(self.binom_res[chain].sort_values('p_value').head(n_head_clstrs)['cluster'])
             clstr_data = pd.merge(self.clstr_labels[chain],data.annot[chain])
     
-            clstr_data['a_cdr3_len'] = clstr_data['a_cdr3'].apply(len)
-            clstr_data['b_cdr3_len'] = clstr_data['b_cdr3'].apply(len)
+            clstr_data['a_cdr3aa_len'] = clstr_data['a_cdr3aa'].apply(len)
+            clstr_data['b_cdr3aa_len'] = clstr_data['b_cdr3aa'].apply(len)
     
             fig = plt.figure(figsize=(35,28))
             n_rows = math.ceil(len(plt_clusters)/4) +1
