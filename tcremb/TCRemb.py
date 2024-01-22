@@ -7,7 +7,7 @@ import sys
 sys.path.append("../")
 sys.path.append("mirpy/")
 from mir.common import parser, Repertoire, SegmentLibrary
-from mir.distances import ClonotypeAligner
+from mir.distances import ClonotypeAligner, GermlineAligner
 from mir.comparative import DenseMatcher
 
 from collections import Counter
@@ -33,6 +33,7 @@ class TCRemb:
     random_state = 7
     
     def __init__(self,run_name):
+        print(sys.path)
         self.clonotypes={}
         self.annot={}
         self.dists={}
@@ -50,7 +51,8 @@ class TCRemb:
         self.__data_id= 'data_id'
         self.__annotation_id = 'annotId'
         self.__clonotype_id_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
-        self.__prototypes_path = { 'TRA' :'mirpy/notebooks/assets/olga_humanTRA_3000.txt', 'TRB' : 'mirpy/notebooks/assets/olga_humanTRB_3000.txt'}
+        #self.__prototypes_path = { 'TRA' :'mirpy/notebooks/assets/olga_humanTRA_3000.txt', 'TRB' : 'mirpy/notebooks/assets/olga_humanTRB_3000.txt'}
+        self.__prototypes_path = { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}
         
         self.__n_components = 50
         self.__tsne_init = 'pca'
@@ -68,6 +70,21 @@ class TCRemb:
         df = data.copy()
         df[annotation_id_str]=df.index
         return df
+    
+    def __filter_segments(self, chain, df_clones,segments_path='mir/resources/segments.txt'):
+        segs = pd.read_csv(segments_path,sep='\t')
+        segs = segs[segs['organism']=='HomoSapiens']
+        segs_ids = list(segs['id'].drop_duplicates())
+        if (chain=='TRA') or (chain=='TRB'):
+            df_clones = df_clones[df_clones['v'].isin(segs_ids)]
+            df_clones = df_clones[df_clones['j'].isin(segs_ids)]
+        if chain=='TRA_TRB':
+            df_clones = df_clones[df_clones['TRAV'].isin(segs_ids)]
+            df_clones = df_clones[df_clones['TRAJ'].isin(segs_ids)]
+            df_clones = df_clones[df_clones['TRBV'].isin(segs_ids)]
+            df_clones = df_clones[df_clones['TRBV'].isin(segs_ids)]
+        df_clones = df_clones.reset_index(drop=True)
+        return df_clones
 
     def __assign_clones_ids(self, data):
         df = data.copy()
@@ -88,14 +105,15 @@ class TCRemb:
 
     
     def tcremb_clonotypes(self,chain, data_preped):
+        data_tt = self.__filter_segments(chain, data_preped)
         if (chain=='TRA') or (chain=='TRB'):
-            data_tt = self.__assign_clones_ids(data_preped)
+            data_tt = self.__assign_clones_ids(data_tt)
             self.clonotypes[chain] = self.__clonotypes_prep(data_tt, self.clonotypes_path[chain], chain, self.__tcr_columns, self.__clonotype_id)
             self.annot[chain] = self.__annot_id(data_tt[data_tt['chain']==chain].reset_index(drop=True), self.__annotation_id)
             
         elif chain=='TRA_TRB':
             chain_1 = 'TRA'
-            data_tt = self.__assign_clones_ids_paired(data_preped, chain_1)
+            data_tt = self.__assign_clones_ids_paired(data_tt, chain_1)
             data_chain_1 = data_tt.copy()
             data_chain_1 = data_chain_1.rename(self.__rename_tcr_columns_paired[chain_1],axis=1)
             data_chain_1['chain']=chain_1
@@ -115,28 +133,50 @@ class TCRemb:
         else:
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
             
+#    def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
+#        lib = SegmentLibrary.load_default(genes={chain})
+#        db = Repertoire(parser.parse_olga_aa(olga_human_path, lib=lib))#, n=3000))
+#        data_proc = parser.parse_from_file_simple(clonotypes_path, lib=lib, gene=chain,
+#                               warn=False)
+#        data_proc = [x for x in data_proc if len(x.cdr3aa) in range(7, 23)]
+#        print(data_proc[0:10])
+#        return lib, db, data_proc
+   
     def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
-        lib = SegmentLibrary.load_default(genes={chain})
-        db = Repertoire(parser.parse_olga_aa(olga_human_path, lib=lib))#, n=3000))
-        data_proc = parser.parse_from_file_simple(clonotypes_path, lib=lib, gene=chain,
-                               warn=False)
+        lib = SegmentLibrary.load_default(genes=chain)
+        db = Repertoire.load(parser=parser.OlgaParser(), path=olga_human_path)
+    
+        pars = parser.ClonotypeTableParser(lib=lib,
+                                  )
+        data_proc = pars.parse(source=clonotypes_path)
         data_proc = [x for x in data_proc if len(x.cdr3aa) in range(7, 23)]
         print(data_proc[0:10])
         return lib, db, data_proc
     
+#    def __mir_launch(self, chain, lib, db, data_proc):
+#        valign = AlignGermline.from_seqs(lib.get_seqaas(gene=chain, stype='V'))
+#        jalign = AlignGermline.from_seqs(lib.get_seqaas(gene=chain, stype='J'))
+#        aligner = ClonotypeAligner(v_aligner=valign, j_aligner=jalign)
+#        matcher = DenseMatch(db, aligner)
+#    
+#        start = time.time()
+#        res = matcher.match_to_df(data_proc, 64, 384)
+#        end = time.time()
+#        print(np.shape(res))
+#        print(end - start)
+#        return res
+
     def __mir_launch(self, chain, lib, db, data_proc):
-        valign = AlignGermline.from_seqs(lib.get_seqaas(gene=chain, stype='V'))
-        jalign = AlignGermline.from_seqs(lib.get_seqaas(gene=chain, stype='J'))
-        aligner = ClonotypeAligner(v_aligner=valign, j_aligner=jalign)
-        matcher = DenseMatch(db, aligner)
-    
+        aligner = ClonotypeAligner.from_library(lib=lib)
+        matcher = DenseMatcher(db, aligner)
+        
         start = time.time()
-        res = matcher.match_to_df(data_proc, 64, 384)
+        res = matcher.match_to_df(data_proc)
         end = time.time()
         print(np.shape(res))
         print(end - start)
         return res
-    
+
     def tcremb_dists_count(self, chain):
         lib, db, data_proc = self.__data_parse_mirpy(chain, self.__prototypes_path[chain],self.clonotypes_path[chain])
         res = self.__mir_launch(chain, lib, db, data_proc)

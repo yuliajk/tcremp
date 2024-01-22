@@ -40,6 +40,34 @@ def filter_clones_data(df_clones, tcr_columns):
     print(df_clones.shape)
     return df_clones
 
+def filter_segments(df_clones,segments_path='mir/resources/segments.txt'):
+    segs = pd.read_csv(segments_path,sep='\t')
+    segs = segs[segs['organism']=='HomoSapiens']
+    segs_ids = list(segs['id'].drop_duplicates())
+    df_clones = df_clones[df_clones['v'].isin(segs_ids)]
+    df_clones = df_clones[df_clones['j'].isin(segs_ids)]
+    df_clones = df_clones.reset_index(drop=True)
+    return df_clones
+
+def freq_label(label, data_id, data_preped, tr = 100):
+    df = data_preped.copy()
+    label_counts = df.groupby(label)[data_id].count().sort_values().reset_index(name='counts')
+    labels_freq = list(label_counts[label_counts['counts']>=tr][label])
+    df[str(label + '_freq')] = df[label].apply(lambda x: x if x in labels_freq else 'other')
+    return df
+    
+    
+def freq_label_list(label, data_id, data_preped, freqs_list):
+    df = data_preped.copy()
+    label_counts = df.groupby(label)[data_id].count().sort_values().reset_index(name='counts')
+    label_count = {}
+    for i in freqs_list:
+        label_count[str(label + '_freq_' + str(i))] = i
+    label_high_count_dict = {}
+    for k in label_count.keys():
+        label_high_count_dict[k] = list(label_counts[label_counts['counts']>= label_count[k]][label])
+        df[k] = df[label].apply(lambda x: x if x in label_high_count_dict[k] else 'other')
+    return df
 
 ## 10x proc
 def read_barcodes(barcodes_file):
