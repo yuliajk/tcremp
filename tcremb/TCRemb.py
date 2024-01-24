@@ -19,7 +19,7 @@ from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import label_binarize
 
-import tcremb.ml_utils
+import tcremb.ml_utils as ml_utils
 
 import tcremb.motif_logo
 import matplotlib.gridspec as gridspec
@@ -35,6 +35,7 @@ class TCRemb:
     def __init__(self,run_name):
         print(sys.path)
         self.clonotypes={}
+        self.clonotype_label_pairs = {}
         self.annot={}
         self.dists={}
         self.pca_clones={}
@@ -132,7 +133,14 @@ class TCRemb:
 
         else:
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
-            
+     
+    
+    def tcremb_clonotype_label_pairs(self, chain, label):
+        if (chain=='TRA') or (chain=='TRB'):
+            self.clonotype_label_pairs[chain] = self.annot[chain][[self.__clonotype_id,label]].drop_duplicates().rest_index(drop=True)
+        elif chain=='TRA_TRB':
+            self.clonotype_label_pairs[chain] = self.annot[chain][list(self.__clonotype_id_dict[chain].values()) + [label]].drop_duplicates().rest_index(drop=True)
+        
 #    def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
 #        lib = SegmentLibrary.load_default(genes={chain})
 #        db = Repertoire(parser.parse_olga_aa(olga_human_path, lib=lib))#, n=3000))

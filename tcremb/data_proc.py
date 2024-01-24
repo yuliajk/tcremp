@@ -49,15 +49,16 @@ def filter_segments(df_clones,segments_path='mir/resources/segments.txt'):
     df_clones = df_clones.reset_index(drop=True)
     return df_clones
 
-def freq_label(label, data_id, data_preped, tr = 100):
+def freq_labels(label, data_id, data_preped, n = 5, tr = 3):
     df = data_preped.copy()
-    label_counts = df.groupby(label)[data_id].count().sort_values().reset_index(name='counts')
-    labels_freq = list(label_counts[label_counts['counts']>=tr][label])
+    label_counts = data_preped.groupby(label)[data_id].count().reset_index(name='counts').sort_values('counts', ascending=False)
+    labels_freq = label_counts.head(n)
+    labels_freq = list(labels_freq[labels_freq['counts']>=tr][label])
     df[str(label + '_freq')] = df[label].apply(lambda x: x if x in labels_freq else 'other')
     return df
     
     
-def freq_label_list(label, data_id, data_preped, freqs_list):
+def freq_labels_tr_list(label, data_id, data_preped, freqs_list):
     df = data_preped.copy()
     label_counts = df.groupby(label)[data_id].count().sort_values().reset_index(name='counts')
     label_count = {}
