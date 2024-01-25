@@ -137,9 +137,9 @@ class TCRemb:
     
     def tcremb_clonotype_label_pairs(self, chain, label):
         if (chain=='TRA') or (chain=='TRB'):
-            self.clonotype_label_pairs[chain] = self.annot[chain][[self.__clonotype_id,label]].drop_duplicates().rest_index(drop=True)
+            self.clonotype_label_pairs[chain] = self.annot[chain][[self.__clonotype_id,label]].drop_duplicates().reset_index(drop=True)
         elif chain=='TRA_TRB':
-            self.clonotype_label_pairs[chain] = self.annot[chain][list(self.__clonotype_id_dict[chain].values()) + [label]].drop_duplicates().rest_index(drop=True)
+            self.clonotype_label_pairs[chain] = self.annot[chain][list(self.__clonotype_id_dict[chain].values()) + [label]].drop_duplicates().reset_index(drop=True)
         
 #    def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
 #        lib = SegmentLibrary.load_default(genes={chain})
@@ -425,7 +425,47 @@ class TCRemb_clustering():
         else:
             print('chain is incorrect')
 
+class TCRemb_clustering_pred(TCRemb_clustering):
+    def __init__(self, model_name):
+        TCRemb_clustering.__init__(self,model_name)
+        self.__annotation_id = 'annotId'
+        #self.n_clusters = {}
+        self.binom_res_train = {}
+        self.clstr_metrics_train = {}
     
+    def clstr_pred(self, chain, data, label_cl, model=None):
+        
+        self.clstr(chain, data, label_cl, model)
+        
+        y_data_train = data.annot[chain][data.annot[chain]['data_type']=='train'][label_cl]
+                
+        clstrs_labels_data_annot_train = pd.merge(self.clstr_labels[chain], data.annot[chain][data.annot[chain]['data_type']=='train'])
+        
+        self.binom_res_train[chain] = ml_utils.binominal_test(clstrs_labels_data_annot_train, 'cluster', label_cl)
+        
+        self.binom_res_train[chain]['is_cluster_train']= self.binom_res_train[chain]['total_cluster'].apply(lambda x: 1 if x>1 else 0)
+        self.binom_res_train[chain]['enriched_clstr_train'] =self.binom_res_train[chain].apply(lambda x:1 
+                                                                             if (x.fraction_matched>=self.threshold)
+                                                                             and (x.is_cluster_train==1) else 0,axis=1)
+        self.clstr_metrics[chain] = ml_utils.clstr_metrics(clstrs_labels_data_annot_train[label_cl], clstrs_labels_data_annot_train['cluster'])
+        
+        self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res_train[chain].rename({label_cl:'label_cluster_train'
+                                                                                                          ,'fraction_matched':'fraction_matched_train'
+                                                                                                          ,'p_value':'p_value_train'},axis=1)[['cluster',
+                                                                                                                                              'label_cluster_train',
+                                                                                                                                              'fraction_matched_train',
+                                                                                                                                              'p_value_train',
+                                                                                                                                              'is_cluster_train',
+                                                                                                                                              'enriched_clstr_train']]
+                                            , on='cluster',how='left').sort_values(self.__annotation_id).reset_index(drop=True)
+        
+        self.train_purity = ml_utils.count_clstr_purity(self.binom_res_train[chain].rename({'is_cluster_train':'is_cluster'},axis=1))
+        self.train_mean_fraction_matched = statistics.mean(self.binom_res_train[chain][self.binom_res_train[chain]['is_cluster_train']==1]['fraction_matched'])
+        self.train_median_fraction_matched = statistics.median(self.binom_res_train[chain][self.binom_res_train[chain]['is_cluster_train']==1]['fraction_matched'])
+        print(f'train mean fraction_matched only clusters: {self.train_mean_fraction_matched}')
+        print(f'train median fraction_matched only clusters: {self.train_median_fraction_matched}')
+        print(f'train purity:{self.train_purity}')    
+
 
 class TCRemb_clf():
     def __init__(self, model_name):
