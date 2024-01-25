@@ -40,6 +40,7 @@ class TCRemb:
         self.dists={}
         self.pca_clones={}
         self.pca={}
+        self.pca_clone_label={}
         self.tsne={}
         self.tsne_clones={}
         self.clstr_labels ={}
@@ -49,6 +50,7 @@ class TCRemb:
         self.__tcr_columns_paired = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ']}
         self.__rename_tcr_columns_paired = {'TRA':{'a_cdr3aa':'cdr3aa','TRAV':'v','TRAJ':'j','cloneId_TRA':'cloneId'},'TRB':{'b_cdr3aa':'cdr3aa','TRBV':'v','TRBJ':'j','cloneId_TRB':'cloneId'}}
         self.__clonotype_id = 'cloneId'
+        self.__clonotyoe_label_id = 'pairId'
         self.__data_id= 'data_id'
         self.__annotation_id = 'annotId'
         self.__clonotype_id_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
@@ -97,6 +99,12 @@ class TCRemb:
         df[self.__clonotype_id_dict['TRA_TRB'][chain]]=df.groupby(self.__tcr_columns_paired[chain],dropna=False).ngroup()
         return df
     
+    def __assign_clone_label_pairs_ids(self, chain, label):
+        if chain=='TRA_TRB':
+            self.annot[chain][self.__clonotyoe_label_id] = self.annot[chain].groupby([[label] + list(self.__clonotype_id_dict[chain].values())],dropna=False).ngroup()
+            
+        else:
+            self.annot[chain][self.__clonotyoe_label_id] = self.annot[chain].groupby([label,self.__clonotype_id],dropna=False).ngroup()  
 
     def __clonotypes_prep(self, clones_df,clonotypes_path, chain, tcr_columns, clonotype_id_str):
         clonotypes = clones_df[clones_df['chain']==chain]
@@ -110,6 +118,7 @@ class TCRemb:
         if (chain=='TRA') or (chain=='TRB'):
             data_tt = self.__assign_clones_ids(data_tt)
             self.clonotypes[chain] = self.__clonotypes_prep(data_tt, self.clonotypes_path[chain], chain, self.__tcr_columns, self.__clonotype_id)
+            
             self.annot[chain] = self.__annot_id(data_tt[data_tt['chain']==chain].reset_index(drop=True), self.__annotation_id)
             
         elif chain=='TRA_TRB':
@@ -136,10 +145,13 @@ class TCRemb:
      
     
     def tcremb_clonotype_label_pairs(self, chain, label):
+        self.__assign_clone_label_pairs_ids(chain, label)
         if (chain=='TRA') or (chain=='TRB'):
-            self.clonotype_label_pairs[chain] = self.annot[chain][[self.__clonotype_id,label]].drop_duplicates().reset_index(drop=True)
+            self.clonotype_label_pairs[chain] = self.annot[chain][[self.__clonotype_id, label, self.__clonotyoe_label_id]].drop_duplicates().reset_index(drop=True)
         elif chain=='TRA_TRB':
-            self.clonotype_label_pairs[chain] = self.annot[chain][list(self.__clonotype_id_dict[chain].values()) + [label]].drop_duplicates().reset_index(drop=True)
+            self.clonotype_label_pairs[chain] = self.annot[chain][list(self.__clonotype_id_dict[chain].values()) + [label, self.__clonotyoe_label_id]].drop_duplicates().reset_index(drop=True)
+        else:
+            print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
         
 #    def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
 #        lib = SegmentLibrary.load_default(genes={chain})
@@ -209,6 +221,10 @@ class TCRemb:
             self.pca_clones[chain] = ml_utils.pca_proc(self.dists[chain], self.__clonotype_id, self.__n_components)
             self.pca[chain] = self.pca_clones[chain].merge(self.annot[chain][[self.__clonotype_id,self.__annotation_id]]).drop(self.__clonotype_id, axis=1, errors =
                                                                                                                                'ignore').sort_values(self.__annotation_id).reset_index(drop=True)
+            if self.clonotype_label_pairs is not None: 
+                self.pca_clone_label[chain] = self.pca_clones[chain].merge(self.clonotype_label_pairs[chain][[self.__clonotype_id,self.__clonotyoe_label_id]]).drop(self.__clonotype_id, axis=1, errors =
+                                                                                                                               'ignore').sort_values(self.__clonotyoe_label_id).reset_index(drop=True)
+        
         elif chain=='TRA_TRB':
             dists_data = self.annot[chain][[self.__annotation_id] + list(self.__clonotype_id_dict[chain].values())]
             chain_1 = 'TRA'
@@ -218,7 +234,17 @@ class TCRemb:
             dists_data = dists_data.drop(self.__clonotype_id_dict[chain].values(), axis=1, errors ='ignore')
             
             self.pca[chain] = ml_utils.pca_proc(dists_data, self.__annotation_id, self.__n_components).sort_values(self.__annotation_id).reset_index(drop=True)
-            self.annot[chain] = self.annot[chain][self.annot[chain][self.__annotation_id].isin(list(dists_data[self.__annotation_id]))].reset_index(drop=True)
+            #self.annot[chain] = self.annot[chain][self.annot[chain][self.__annotation_id].isin(list(dists_data[self.__annotation_id]))].reset_index(drop=True)
+            
+            if self.clonotype_label_pairs is not None:
+                dists_data = self.clonotype_label_pairs[chain][[self.__clonotyoe_label_id] + list(self.__clonotype_id_dict[chain].values())]
+                chain_1 = 'TRA'
+                dists_data = dists_data.merge(self.dists[chain_1].rename({self.__clonotype_id_dict[chain_1]:self.__clonotype_id_dict[chain][chain_1]},axis=1))
+                chain_1 = 'TRB'
+                dists_data = dists_data.merge(self.dists[chain_1].rename({self.__clonotype_id_dict[chain_1]:self.__clonotype_id_dict[chain][chain_1]},axis=1))
+                dists_data = dists_data.drop(self.__clonotype_id_dict[chain].values(), axis=1, errors ='ignore')
+                
+                self.pca_clone_label[chain] = ml_utils.pca_proc(dists_data, self.__clonotyoe_label_id, self.__n_components).sort_values(self.__clonotyoe_label_id).reset_index(drop=True)
             
             
     def tcremb_tsne(self,chain):
