@@ -140,6 +140,24 @@ def kmeans_proc(proc_df, id_column, n_clusters, random_state):
 
 
 ##Classification
+def generate_negative_pairs(positive_pairs, n , p1_col, p2_col):
+    negative_pairs = []
+    i=0
+    while i < n:
+        p1 = positive_pairs.sample(n=1).reset_index(drop=True)
+        p2 = positive_pairs.sample(n=1).reset_index(drop=True)
+        pair = {}
+        pair[p1_col] = p1[p1_col][0]
+        pair[p2_col] = p2[p2_col][0]
+        if (len(positive_pairs[(positive_pairs[p1_col]==pair[p1_col])&(positive_pairs[p2_col]==pair[p2_col])])==0) and (pair not in negative_pairs):
+            negative_pairs.append(pair)
+            i += 1
+    return pd.DataFrame(negative_pairs)
+
+def roc_auc_count_binary(y_test,y_pred):
+    fpr, tpr, _ = roc_curve(y_test,y_pred)
+    return auc(fpr,tpr)
+
 def roc_auc_count(y_test_curv,y_pred_curv):
     n_classes = y_test_curv.shape[1]
     fpr = dict()
@@ -161,7 +179,8 @@ def plot_roccurve_multi(classes_list,y_test_curv,y_score,title, ax,test_acc=None
             ax=ax,
             plot_chance_level=(class_id == 2),)
     if f1_weighted is not None:
-        ax.text(1.7,0.2,f"accuracy: {round(test_acc,2)}\nf1_weighted:{round(f1_weighted['f1'],2)}\nprecision:{round(f1_weighted['precision'],2)}\nrecall:{round(f1_weighted['recall'],2)}")
+        print(f"accuracy: {round(test_acc,2)}\nf1_weighted:{round(f1_weighted['f1'],2)}\nprecision:{round(f1_weighted['precision'],2)}\nrecall:{round(f1_weighted['recall'],2)}")
+        #ax.text(1.7,0.2,f"accuracy: {round(test_acc,2)}\nf1_weighted:{round(f1_weighted['f1'],2)}\nprecision:{round(f1_weighted['precision'],2)}\nrecall:{round(f1_weighted['recall'],2)}")
     ax.set_title(title)
     if show_legend:
         ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
