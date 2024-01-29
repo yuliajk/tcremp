@@ -21,7 +21,7 @@ from sklearn.preprocessing import label_binarize
 
 import tcremb.ml_utils as ml_utils
 
-import tcremb.motif_logo
+import tcremb.motif_logo as motif_logo
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -219,7 +219,8 @@ class TCRemb:
     def tcremb_dists(self, chain):
         self.dists[chain] = self.__mir_results_proc(chain, self.dists_res_path[chain], self.clonotypes_path[chain], self.clonotype_id)
         self.annot[chain] = self.annot[chain][self.annot[chain][self.clonotype_id].isin(list(self.dists[chain][self.clonotype_id]))].reset_index(drop=True)
-        self.clonotype_label_pairs[chain] = self.clonotype_label_pairs[chain][self.clonotype_label_pairs[chain][self.clonotype_id].isin(list(self.dists[chain][self.clonotype_id]))].reset_index(drop=True)
+        if len(self.clonotype_label_pairs.values()) != 0:
+            self.clonotype_label_pairs[chain] = self.clonotype_label_pairs[chain][self.clonotype_label_pairs[chain][self.clonotype_id].isin(list(self.dists[chain][self.clonotype_id]))].reset_index(drop=True)
 
     def tcremb_pca(self, chain):
         if (chain == 'TRA') or (chain == 'TRB'):
@@ -337,15 +338,20 @@ class TCRemb_clustering():
                 motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[0])
                 list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3aa: {len(seqs)}")
         plot_v_j = clstr_data[clstr_data['cluster']==c]
-        plot_v_j['count']=plot_v_j.groupby('v').transform('size')
-        plot_v_j = plot_v_j.sort_values('v')
-        sns.histplot(plot_v_j[['count','v']],y='v',ax=list_ax[1])
+        #plot_v_j['count']=plot_v_j.groupby('v').transform('size')
+        #plot_v_j = plot_v_j.sort_values('v')
+        #sns.histplot(plot_v_j[['count','v']],y='v',ax=list_ax[1])
+        
+        plot_v_j = pd.DataFrame(plot_v_j.groupby('v')['cdr3aa'].count().reset_index())
+        list_ax[1].pie(plot_v_j['cdr3aa'],labels=plot_v_j['v'])
         #list_ax[2].set_title('V genes count in cluster, cluster ' + str(c))
 
         plot_v_j = clstr_data[clstr_data['cluster']==c]
-        plot_v_j['count']=plot_v_j.groupby('j').transform('size')
-        plot_v_j = plot_v_j.sort_values('j')
-        sns.histplot(plot_v_j[['count','j']],y='j',ax=list_ax[2])
+        #plot_v_j['count']=plot_v_j.groupby('j').transform('size')
+        #plot_v_j = plot_v_j.sort_values('j')
+        #sns.histplot(plot_v_j[['count','j']],y='j',ax=list_ax[2])
+        plot_v_j = pd.DataFrame(plot_v_j.groupby('j')['cdr3aa'].count().reset_index())
+        list_ax[2].pie(plot_v_j['cdr3aa'],labels=plot_v_j['j'])
         #list_ax[3].set_title('J genes count in cluster, cluster ' + str(c))        
     
     def __plot_logo_paired(self, clstr_data,chain, c, list_ax):
