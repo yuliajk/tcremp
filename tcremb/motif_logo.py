@@ -1,5 +1,7 @@
-
+import numpy as np
+import pandas as pd
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 from matplotlib.text import TextPath
 from matplotlib.patches import PathPatch
 from matplotlib.font_manager import FontProperties
@@ -50,6 +52,36 @@ LETTERS_color =  {"A" : 'black',
            "V" : 'black',
            "-" : 'black'}
 
+def get_seqs_prob_df(seqs):
+    alphabet = [aa for aa in 'ACDEFGHIKLMNPQRSTVWY']
+    l = len(seqs[0])
+    freq = np.zeros((len(alphabet), l))
+    for pos in range(l):
+        for s in seqs:
+            freq[alphabet.index(s[pos]), pos] +=1
+    freq_res = freq/freq.sum(axis=0, keepdims=True)
+    prob_df = pd.DataFrame(freq_res,index=alphabet)
+    return prob_df
+
+def get_seqs_info_df(prob_df):
+    info_df = prob_df.copy()
+    b_df = prob_df.copy()
+    n_pos, n_cols = b_df.shape
+    b_df.loc[:, :] = 1 / n_cols
+    
+    p_vals = prob_df.values
+    b_vals = b_df.values
+    
+    e = np.finfo(float).tiny
+    #tmp_vals = p_vals * (np.log2(p_vals + e) - np.log2(b_vals + e))
+    tmp_vals = p_vals * np.log2(p_vals+e)
+    #info_vec = tmp_vals.sum(axis=1)
+    info_vec = np.log2(20) + tmp_vals.sum(axis=1)
+    #info_vec = np.log2(20) + tmp_vals.sum(axis=1) + (1/(np.log(2)))*((20-1)/(2*n_pos))
+    info_df.loc[:, :] = p_vals * info_vec[:, np.newaxis]
+    return info_df
+
+
 def amino_letterAt(letter, x, y, yscale=1, ax=None):
 
     text = LETTERS[letter]
@@ -62,25 +94,30 @@ def amino_letterAt(letter, x, y, yscale=1, ax=None):
     return p
 
 
-def plot_amino_logo(motif, title, ax=None):
+def plot_amino_logo(seqs, title, ax=None):
+    prob_df = get_seqs_prob_df(seqs)
+    info_df = get_seqs_info_df(prob_df)
     if ax is None:
         fig, ax = plt.subplots(figsize=(10,3))
     
     x = 1
     maxi = 0
     
-    for xi in range(motif.shape[1]):
-        scores = motif.iloc[:, xi]
+    for xi in range(info_df.shape[1]):
+        scores = info_df.iloc[:, xi]
+        ordered_indices = np.argsort(scores)
+        scores = scores[ordered_indices]
         y = 0
         
         for base,score in scores.items():
-            if score > 2/len(scores):
-                amino_letterAt(base, x,y, score, ax)
-                y += score
+        #    if score > 2/len(scores):
+            amino_letterAt(base, x,y, score, ax)
+            y += score
         x += 1
         maxi = max(maxi, y)
     #plt.xticks(range(1,x))
     ax.set_xlim((0, x)) 
+    ax.set_ylim((0, maxi)) 
     #plt.ylim((0, maxi)) 
     #plt.suptitle(title)
     #plt.tight_layout()      

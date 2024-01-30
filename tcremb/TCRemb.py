@@ -227,9 +227,6 @@ class TCRemb:
             self.pca_clones[chain] = ml_utils.pca_proc(self.dists[chain], self.clonotype_id, self.__n_components)
             self.pca[chain] = self.pca_clones[chain].merge(self.annot[chain][[self.clonotype_id,self.annotation_id]]).drop(self.clonotype_id, axis=1, errors =
                                                                                                                                'ignore').sort_values(self.annotation_id).reset_index(drop=True)
-            #if self.clonotype_label_pairs is not None: 
-            #    self.pca_clone_label[chain] = self.pca_clones[chain].merge(self.clonotype_label_pairs[chain][[self.clonotype_id,self.clonotyoe_label_id]]).drop(self.clonotype_id, axis=1, errors =
-            #                                                                                                                   'ignore').sort_values(self.clonotyoe_label_id).reset_index(drop=True)
         
         elif chain=='TRA_TRB':
             dists_data = self.annot[chain][[self.annotation_id] + list(self.clonotype_id_dict[chain].values())]
@@ -241,16 +238,6 @@ class TCRemb:
             
             self.pca[chain] = ml_utils.pca_proc(dists_data, self.annotation_id, self.__n_components).sort_values(self.annotation_id).reset_index(drop=True)
             #self.annot[chain] = self.annot[chain][self.annot[chain][self.annotation_id].isin(list(dists_data[self.annotation_id]))].reset_index(drop=True)
-            
-            #if self.clonotype_label_pairs is not None:
-            #    dists_data = self.clonotype_label_pairs[chain][[self.clonotyoe_label_id] + list(self.clonotype_id_dict[chain].values())]
-            #    chain_1 = 'TRA'
-            #    dists_data = dists_data.merge(self.dists[chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
-            #    chain_1 = 'TRB'
-            #    dists_data = dists_data.merge(self.dists[chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
-            #    dists_data = dists_data.drop(self.clonotype_id_dict[chain].values(), axis=1, errors ='ignore')
-            #    
-            #    self.pca_clone_label[chain] = ml_utils.pca_proc(dists_data, self.clonotyoe_label_id, self.__n_components).sort_values(self.clonotyoe_label_id).reset_index(drop=True)
             
             
     def tcremb_tsne(self,chain):
@@ -327,15 +314,16 @@ class TCRemb_clustering():
         total_cl = cluster_df['total_cluster'].drop_duplicates().reset_index(drop=True)[0]
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
-            seqs = cluster_df[cluster_df['cdr3aa_len']==l]['cdr3aa']
+            seqs = cluster_df[cluster_df['cdr3aa_len']==l]['cdr3aa'].reset_index(drop=True)
             if len(seqs) > 4:
-                freq = np.zeros((len(alphabet), l))
-                for pos in range(l):
-                    for s in seqs:
-                        freq[alphabet.index(s[pos]), pos] +=1
-                freq_res = freq/freq.sum(axis=0, keepdims=True)
-                motif = pd.DataFrame(freq_res,index=alphabet)
-                motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[0])
+                motif_logo.plot_amino_logo(seqs, 'title',ax = list_ax[0])
+#                freq = np.zeros((len(alphabet), l))
+#                for pos in range(l):
+#                    for s in seqs:
+#                        freq[alphabet.index(s[pos]), pos] +=1
+#                freq_res = freq/freq.sum(axis=0, keepdims=True)
+#                motif = pd.DataFrame(freq_res,index=alphabet)
+#                motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[0])
                 list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3aa: {len(seqs)}")
         plot_v_j = clstr_data[clstr_data['cluster']==c]
         #plot_v_j['count']=plot_v_j.groupby('v').transform('size')
