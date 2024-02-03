@@ -92,7 +92,7 @@ def binominal_test(df, cluster, group):
     binom_df['count_matched'] = binom_df.groupby([group,cluster])[group].transform('count')
     binom_df['fraction_matched'] = binom_df['count_matched']/binom_df['total_cluster']
     binom_df['fraction_matched_exp'] = binom_df['total_group']/len(binom_df.index)
-    binom_df['p_value'] = binom_df.apply(lambda row: stats.binom_test(row['count_matched'], n=row['total_cluster'], p=row['fraction_matched_exp'], alternative='greater'),axis=1)
+    binom_df['p_value'] = binom_df.apply(lambda row: stats.binomtest(row['count_matched'], n=row['total_cluster'], p=row['fraction_matched_exp'], alternative='greater').pvalue,axis=1)
     #binom_df = binom_df[binom_df['fraction_matched']>binom_df['fraction_matched_exp']]
     binom_df_cluster = binom_df[[group, cluster,'total_cluster','total_group','count_matched','fraction_matched','fraction_matched_exp','p_value']].drop_duplicates().sort_values('p_value')
     binom_df_cluster = binom_df_cluster.sort_values(['fraction_matched'],ascending=False)

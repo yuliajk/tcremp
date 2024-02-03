@@ -32,7 +32,7 @@ class TCRemb:
     annotation_id = 'annotId'
     random_state = 7
     
-    def __init__(self,run_name):
+    def __init__(self,run_name, input_data):
         print(sys.path)
         self.clonotypes={}
         self.clonotype_label_pairs = {}
@@ -51,7 +51,7 @@ class TCRemb:
         self.__rename_tcr_columns_paired = {'TRA':{'a_cdr3aa':'cdr3aa','TRAV':'v','TRAJ':'j','cloneId_TRA':'cloneId'},'TRB':{'b_cdr3aa':'cdr3aa','TRBV':'v','TRBJ':'j','cloneId_TRB':'cloneId'}}
         self.clonotype_id = 'cloneId'
         self.clonotyoe_label_id = 'pairId'
-        self.data_id= 'data_id'
+        self.input_id= 'inputId'
         self.annotation_id = 'annotId'
         self.clonotype_id_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
         #self.__prototypes_path = { 'TRA' :'mirpy/notebooks/assets/olga_humanTRA_3000.txt', 'TRB' : 'mirpy/notebooks/assets/olga_humanTRB_3000.txt'}
@@ -68,6 +68,10 @@ class TCRemb:
         
         self.clonotypes_path = { 'TRA' : self.outputs_path + 'clonotypes_TRA.txt', 'TRB' : self.outputs_path + 'clonotypes_TRB.txt'}
         self.dists_res_path = {'TRA' : self.outputs_path + 'res_TRA.txt', 'TRB': self.outputs_path + 'res_TRB.txt'}
+        
+        
+        self.input_data = input_data.copy()
+        self.input_data = self.__annot_id(self.input_data, self.input_id)
 
     def __annot_id(self, data, annotation_id_str):
         df = data.copy()
@@ -116,8 +120,8 @@ class TCRemb:
         return clonotypes
 
     
-    def tcremb_clonotypes(self,chain, data_preped):
-        data_tt = self.__filter_segments(chain, data_preped)
+    def tcremb_clonotypes(self,chain):
+        data_tt = self.__filter_segments(chain, self.input_data)
         if (chain=='TRA') or (chain=='TRB'):
             data_tt = self.__assign_clones_ids(data_tt)
             self.clonotypes[chain] = self.__clonotypes_prep(data_tt, self.clonotypes_path[chain], chain, self.__tcr_columns, self.clonotype_id)
