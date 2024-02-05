@@ -85,7 +85,7 @@ def tsne_plot(data_plot, to_color, title, suptitle=None,legend=True, custom_pale
 
 ## Metrics
 ### to check fraction_matched_exp
-def binominal_test(df, cluster, group):
+def binominal_test(df, cluster, group, threshold = 0.7):
     binom_df = df.copy()
     binom_df['total_cluster'] = binom_df.groupby(cluster)[cluster].transform('count')
     binom_df['total_group'] = binom_df.groupby(group)[group].transform('count')
@@ -95,6 +95,10 @@ def binominal_test(df, cluster, group):
     binom_df['p_value'] = binom_df.apply(lambda row: stats.binomtest(row['count_matched'], n=row['total_cluster'], p=row['fraction_matched_exp'], alternative='greater').pvalue,axis=1)
     #binom_df = binom_df[binom_df['fraction_matched']>binom_df['fraction_matched_exp']]
     binom_df_cluster = binom_df[[group, cluster,'total_cluster','total_group','count_matched','fraction_matched','fraction_matched_exp','p_value']].drop_duplicates().sort_values('p_value')
+    binom_df_cluster['is_cluster'] = binom_df_cluster['total_cluster'].apply(lambda x: 1 if x>1 else 0)
+    binom_df_cluster['enriched_clstr'] = binom_df_cluster.apply(lambda x:1 
+                                                                if (x.fraction_matched>=threshold)
+                                                                and (x.is_cluster==1) else 0,axis=1)
     binom_df_cluster = binom_df_cluster.sort_values(['fraction_matched'],ascending=False)
     binom_df_cluster = binom_df_cluster.drop_duplicates('cluster',keep='first')
     return binom_df_cluster
