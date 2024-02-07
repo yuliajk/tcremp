@@ -407,8 +407,9 @@ class TCRemb_clustering():
         
             clstr_data['cdr3aa_len'] = clstr_data['cdr3aa'].apply(len)
         
-            n_rows = math.ceil(len(plt_clusters)/4) +1
-            fig = plt.figure(figsize=(8*n_rows,28))
+            n_rows = math.ceil(len(plt_clusters)/4)
+
+            fig = plt.figure(figsize=(28, 7*n_rows))
             outer_grid = gridspec.GridSpec(n_rows, 4,figure=fig)
             gs = []
             ax_list = []
@@ -429,8 +430,9 @@ class TCRemb_clustering():
             clstr_data['a_cdr3aa_len'] = clstr_data['a_cdr3aa'].apply(len)
             clstr_data['b_cdr3aa_len'] = clstr_data['b_cdr3aa'].apply(len)
     
-            fig = plt.figure(figsize=(35,28))
-            n_rows = math.ceil(len(plt_clusters)/4) +1
+            n_rows = math.ceil(len(plt_clusters)/4)
+
+            fig = plt.figure(figsize=(28, 8*n_rows))
             outer_grid = gridspec.GridSpec(n_rows, 4,figure=fig)
             gs = []
             ax_list = []
