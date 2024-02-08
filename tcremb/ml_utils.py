@@ -32,6 +32,8 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 from sklearn.model_selection import cross_val_score
 
+colors = ['black','lime','red','blue','orange','darkgreen','pink','cyan','yellow','teal','maroon','indigo','fuchsia','olive','navy','palegreen','crimson','gold','lightsalmon' ]
+
 def pca_proc(res_df, id_column='id', n_components=100):
     data_proc = res_df.drop(id_column, axis=1, errors = 'ignore')
     pca = PCA(n_components=n_components)
@@ -68,9 +70,10 @@ def pc_anova(data, pc_n, group):
 
 def make_custom_palette(labels_list):
     color_n = len(labels_list)
-    palette = sns.color_palette("bright", color_n).as_hex()
+    #palette = sns.color_palette("bright", color_n).as_hex()
+    palette = colors[0:color_n]
     custom_palette = {labels_list[i]: palette[i] for i in range(color_n)}
-    custom_palette['other']='#cfcfcf'
+    custom_palette['other']='lightgrey'
     return custom_palette
 
 def tsne_plot(data_plot, to_color, title, suptitle=None,legend=True, custom_palette=None,ax=None,):
@@ -172,15 +175,21 @@ def roc_auc_count(y_test_curv,y_pred_curv):
         roc_auc[i] = auc(fpr[i], tpr[i])
     return roc_auc
 
-def plot_roccurve_multi(classes_list,y_test_curv,y_score,title, ax,test_acc=None, f1_weighted=None,show_legend=True):
+def plot_roccurve_multi(classes_list,y_test_curv,y_score,title, ax,custom_palette=None,test_acc=None, f1_weighted=None,show_legend=True):
     if ax is None:
         fig, ax = plt.subplots(figsize=(7, 7))
     for class_id in range(len(classes_list)):
+        if custom_palette is None:
+            color = colors[class_id]
+        else:
+            color = custom_palette[classes_list[class_id]]
+            
         RocCurveDisplay.from_predictions(
             y_test_curv[:, class_id],
             y_score[:, class_id],
             name=f"ROC curve for {classes_list[class_id]}",
             ax=ax,
+            color = color,
             plot_chance_level=(class_id == 2),)
     if f1_weighted is not None:
         print(f"accuracy: {round(test_acc,2)}\nf1_weighted:{round(f1_weighted['f1'],2)}\nprecision:{round(f1_weighted['precision'],2)}\nrecall:{round(f1_weighted['recall'],2)}")

@@ -554,7 +554,7 @@ class TCRemb_clf():
         #print(f"cross_val_score f1_weighted: {self.clsf_metrics[chain]['cross_val_f1_weighted']}")
         
         
-    def roc_auc(self, chain, ax=None, show_legend=True):
+    def roc_auc(self, chain, ax=None, show_legend=True, custom_palette=None):
         classes_list = list(self.model[chain].classes_)
         y_test_curv = label_binarize(self.y_test[chain], classes=classes_list)
         y_pred_curv = label_binarize(self.test_pred[chain], classes=classes_list)
@@ -563,7 +563,7 @@ class TCRemb_clf():
         self.roc_auc_proba[chain]=roc_auc_proba
         self.roc_auc_proba_df[chain] = pd.DataFrame({'class':classes_list ,'roc_auc':roc_auc_proba.values()})
         
-        ml_utils.plot_roccurve_multi(classes_list, y_test_curv, self.test_pred_proba[chain],f'ROC curves, {chain}', ax, self.clsf_metrics[chain]['test_acc'], self.clsf_metrics[chain]['f1_weighted'],show_legend)
+        ml_utils.plot_roccurve_multi(classes_list, y_test_curv, self.test_pred_proba[chain],f'ROC curves, {chain}', ax, custom_palette=custom_palette, test_acc=self.clsf_metrics[chain]['test_acc'], f1_weighted=self.clsf_metrics[chain]['f1_weighted'],show_legend=show_legend)
             
 
 class TCRemb_clf_bind(TCRemb_clf):  
@@ -672,7 +672,7 @@ class TCRemb_clf_pred(TCRemb_clf):
             print(f"weighted: {self.clsf_metrics[chain]['f1_weighted']}")
         
         
-    def roc_auc_pred(self, chain, ax=None, show_legend=True):
+    def roc_auc_pred(self, chain, ax=None, show_legend=True, custom_palette=None):
         classes_list = list(self.model[chain].classes_)
         y_real_curv = label_binarize(self.y_pred_real[chain], classes=classes_list)
         y_pred_curv = label_binarize(self.pred[chain], classes=classes_list)
@@ -680,7 +680,7 @@ class TCRemb_clf_pred(TCRemb_clf):
         roc_auc_proba = ml_utils.roc_auc_count(y_real_curv,self.pred_proba[chain])
         self.roc_auc_proba_pred_df[chain] = pd.DataFrame({'class':classes_list ,'roc_auc':roc_auc_proba.values()})
         
-        ml_utils.plot_roccurve_multi(classes_list, y_real_curv, self.pred_proba[chain],f'ROC curves, {chain}', ax,show_legend)
+        ml_utils.plot_roccurve_multi(classes_list, y_real_curv, self.pred_proba[chain],f'ROC curves, {chain}', ax, custom_palette=custom_palette, show_legend=show_legend)
         
         #roc_auc = ml_utils.roc_auc_count(y_real_curv,y_pred_curv)
         #roc_auc_df[chain] = pd.DataFrame({'class':classes_list ,'roc_auc':roc_auc.values()})
