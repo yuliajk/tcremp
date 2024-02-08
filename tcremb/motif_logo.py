@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.text import TextPath
 from matplotlib.patches import PathPatch
 from matplotlib.font_manager import FontProperties
-fp = FontProperties(family="Arial", weight="bold") 
+fp = FontProperties(weight="bold") 
 globscale = 1.35
 
 LETTERS = { "A" : TextPath((-0.305, 0), "A", size=1, prop=fp),
