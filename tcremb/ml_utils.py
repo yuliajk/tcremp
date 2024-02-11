@@ -76,15 +76,24 @@ def make_custom_palette(labels_list):
     custom_palette['other']='lightgrey'
     return custom_palette
 
-def tsne_plot(data_plot, to_color, title, suptitle=None,legend=True, custom_palette=None,ax=None,):
-        
+#def tsne_plot(data_plot, to_color, title, suptitle=None,legend=True, custom_palette=None,ax=None,):
+#        
+#    if ax is None:
+#        fig, ax = plt.subplots(figsize=(7, 7))
+#    sns.scatterplot(x='DM1', y='DM2', data=data_plot.sort_values(to_color), hue=to_color,s=8, legend = legend,palette=custom_palette, ax=ax)
+#    #plt.suptitle(suptitle)
+#    ax.set_title(title)
+#    ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
+
+def tsne_plot(data_plot, to_color, title, to_size=None,suptitle=None,legend=True, custom_palette=None,ax=None,):
     if ax is None:
         fig, ax = plt.subplots(figsize=(7, 7))
-    sns.scatterplot(x='DM1', y='DM2', data=data_plot.sort_values(to_color), hue=to_color,s=8, legend = legend,palette=custom_palette, ax=ax)
-    #plt.suptitle(suptitle)
+    if to_size is None:
+        sns.scatterplot(x='DM1', y='DM2', data=data_plot.sort_values(to_color), hue=to_color, s=2,legend = legend,palette=custom_palette, ax=ax)
+    else:
+        sns.scatterplot(x='DM1', y='DM2', data=data_plot.sort_values(to_color), hue=to_color,size=to_size, sizes=(1, 100),legend = legend,palette=custom_palette, ax=ax)
     ax.set_title(title)
     ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
-
 
 ## Metrics
 ### to check fraction_matched_exp
