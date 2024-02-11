@@ -61,7 +61,7 @@ def main():
                         help='TRA or TRB if single, TRA_TRB if paired')
     
     parser.add_argument('--mode', type=str, default='clstr',
-                        help='clstr - clusteting, clsf - classification, clstr_clsf - beoth, clstr_pred - clustering with train and pred datasets, clsf_pred - classification with traning and prediction of pred dataset, clstr_clsf_pred, scores - only scores count')
+                        help='clstr - clusteting, clsf - classification, clstr_clsf - both, clstr_pred - clustering with train and pred datasets, clsf_pred - classification with traning and prediction of pred dataset, clstr_clsf_pred, scores - only scores count')
     
     parser.add_argument('--skip_scores', type=bool, default=False
                         , help='If score are already calculated pass skip_scores True')
