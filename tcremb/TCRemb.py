@@ -211,6 +211,7 @@ class TCRemb:
             self.pca_clones[chain] = ml_utils.pca_proc(self.dists[chain], self.clonotype_id, self.__n_components)
             self.pca[chain] = self.pca_clones[chain].merge(self.annot[chain][[self.clonotype_id,self.annotation_id]]).drop(self.clonotype_id, axis=1, errors =
                                                                                                                                'ignore').sort_values(self.annotation_id).reset_index(drop=True)
+            self.annot[chain] = self.annot[chain][self.annot[chain][self.clonotype_id].isin(list(self.pca_clones[chain][self.clonotype_id]))].reset_index(drop=True)
         
         elif chain=='TRA_TRB':
             dists_data = self.annot[chain][[self.annotation_id, self.clonotype_id] +list(self.clonotype_id_dict[chain].values())]
@@ -230,6 +231,8 @@ class TCRemb:
             
             self.pca_clones[chain] = ml_utils.pca_proc(dists_data, self.clonotype_id, self.__n_components)
             self.pca[chain] = self.pca_clones[chain].merge(annot_clones).drop(self.clonotype_id,axis=1)
+            
+            self.annot[chain] = self.annot[chain][self.annot[chain][self.clonotype_id].isin(list(self.pca_clones[chain][self.clonotype_id]))].reset_index(drop=True)
             
             #dists_data = self.annot[chain][[self.annotation_id] + list(self.clonotype_id_dict[chain].values())]
             #chain_1 = 'TRA'

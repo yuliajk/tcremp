@@ -1,19 +1,19 @@
 import argparse
-import math
+#import math
 from pathlib import Path
-import sys
+#import sys
 import numpy as np
 import pandas as pd
-from scipy import stats
-import statistics
+#from scipy import stats
+#import statistics
 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import seaborn as sns
+#import matplotlib.pyplot as plt
+#import matplotlib as mpl
+#import seaborn as sns
 
 
-sys.path.append("mirpy/")
-sys.path.append("../")
+#sys.path.append("mirpy/")
+#sys.path.append("../")
 import tcremb.TCRemb as TCRemb
 import tcremb.ml_utils as ml_utils
 import tcremb.data_proc as data_proc
@@ -24,6 +24,7 @@ tcr_columns = ['cdr3aa','v','j','chain']
 clonotype_id_column = 'cloneId'
 data_id= 'data_id'
 annotation_id = 'annotId'
+
 #pairing_id = 'barcode'
 annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
 
@@ -31,7 +32,10 @@ annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {
 def clustering(args, tcremb,outputs_path):
     kmeans = TCRemb.TCRemb_clustering('KMeans')
     kmeans.clstr(args.chain, tcremb, args.label)
-    kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[annotation_id,args.label]]).to_csv(f'{outputs_path}tcremb_clstr_res_{args.chain}.txt', sep='\t', index=False)
+    df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
+    df = df.merge(tcremb.tsne[args.chain])
+    df = df.merge(tcremb.tsne_pca[args.chain].reanme({'DM1':'DM1_clones','DM2':'DM2_clones'},axis=1))
+    df.to_csv(f'{outputs_path}tcremb_clstr_res_{args.chain}.txt', sep='\t', index=False)
     
 def classsification(args, tcremb,outputs_path):
     clf = TCRemb.TCRemb_clf('RF')
@@ -81,15 +85,24 @@ def main():
     
     if not args.skip_scores:
         print(f'calculating dist scores for {args.chain} chain {args.input}')
-        tcremb.tcremb_dists_count(args.chain)
+        if args.chain == 'TRA_TRB':
+            tcremb.tcremb_dists_count('TRA')
+            tcremb.tcremb_dists_count('TRB')
+        else:
+            tcremb.tcremb_dists_count(args.chain)
     else:
         print('skip_scores was passed as parametr. continue withot scores calculation')
 
     if args.mode!='scores':
         print(f'calculating pca of dists scores for {args.chain} chain {args.input}')
-        tcremb.tcremb_dists(args.chain)
+        if args.chain == 'TRA_TRB':
+            tcremb.tcremb_dists('TRA')
+            tcremb.tcremb_dists('TRB')
+        else:
+            tcremb.tcremb_dists(args.chain)
+        
         tcremb.tcremb_pca(args.chain)
-        ##tcremb.tcremb_tsne(args.chain)
+        tcremb.tcremb_tsne(args.chain)
     else:
         print('Finished. only scores were calculated')
         
