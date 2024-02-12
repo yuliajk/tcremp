@@ -30,12 +30,16 @@ annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {
 
 
 def clustering(args, tcremb,outputs_path):
+    output_columns = [tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']
     kmeans = TCRemb.TCRemb_clustering('KMeans')
     kmeans.clstr(args.chain, tcremb, args.label)
-    if tcremb.data_id is None:
-        df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
-    else:
-        df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.data_id, tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
+    if tcremb.data_id is not None:
+        output_columns.append(tcremb.data_id)
+    if args.label is not None:
+        output_columns.append(args.label)
+
+    #df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.data_id, tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
+    df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][output_columns])
     df = df.merge(tcremb.tsne[args.chain])
     df = df.merge(tcremb.tsne_clones[args.chain].rename({'DM1':'DM1_clones','DM2':'DM2_clones'},axis=1))
     df.to_csv(f'{outputs_path}tcremb_clstr_res_{args.chain}.txt', sep='\t', index=False)
@@ -97,7 +101,7 @@ def main():
         else:
             tcremb.tcremb_dists_count(args.chain)
     else:
-        print('skip_scores was passed as parametr. continue withot scores calculation')
+        print('skip_scores was passed as parameter. continue withot scores calculation')
 
     if args.mode!='scores':
         print(f'calculating pca of dists scores for {args.chain} chain {args.input}')
@@ -114,9 +118,8 @@ def main():
         
     if (args.mode=='clstr') or (args.mode=='clstr_clsf'):
         if args.label is None:
-            print('Cant continue with clustering. Please provide label')
-        else:
-            clustering(args, tcremb, outputs_path)
+            print('Label is not passed as parametr. Clustering will be done without metrics and assining label of cluster')
+        clustering(args, tcremb, outputs_path)
             
     if (args.mode=='clsf') or (args.mode=='clstr_clsf'):
         if args.label is None:

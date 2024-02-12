@@ -275,7 +275,7 @@ class TCRemb_clustering():
         #self.n_clusters = {}
         self.silhouette_n_clusters = {}
     
-    def clstr(self, chain, data, label_cl, model=None):
+    def clstr(self, chain, data, label_cl=None, model=None):
         #df = data.annot[chain][[data.clonotype_id, data.annotation_id, label_cl]]
         #annot_clones = df[[data.clonotype_id, data.annotation_id]]
         #df = df.merge(data.pca[chain]).drop_duplicates([data.clonotype_id, label_cl])
@@ -287,26 +287,32 @@ class TCRemb_clustering():
         X_data = data.pca_clones[chain]
         
         if model is None:
-            self.silhouette_clusters(X_data.drop(data.clonotype_id,axis=1), chain,label_cl)
+            self.silhouette_clusters(X_data.drop(data.clonotype_id,axis=1), chain)
             model =  KMeans(n_clusters=self.silhouette_n_clusters[chain], random_state=7)
         
         
-        #clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data_clones , data.clonotype_id)
+
         clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data , data.clonotype_id)
         self.clstr_labels[chain] = clstr_labels.merge(annot_clones).drop(data.clonotype_id, axis=1)
-        #self.__clstr_metrics(chain, data, label_cl)
         
-    #def __clstr_metrics(self, chain, data, label_cl):
-        self.binom_res[chain] = ml_utils.binominal_test(pd.merge(self.clstr_labels[chain],data.annot[chain]), 'cluster', label_cl, self.threshold)
+        if label_cl is not None:
+            self.binom_res[chain] = ml_utils.binominal_test(pd.merge(self.clstr_labels[chain],data.annot[chain]), 'cluster', label_cl, self.threshold)
         
-        #self.binom_res[chain]['is_cluster']= self.binom_res[chain]['total_cluster'].apply(lambda x: 1 if x>1 else 0)
-        #self.binom_res[chain]['enriched_clstr'] =self.binom_res[chain].apply(lambda x:1 
-        #                                                                     if (x.fraction_matched>=self.threshold)
-        #                                                                     and (x.is_cluster==1) else 0,axis=1)
-        self.clstr_metrics[chain] = ml_utils.clstr_metrics(data.annot[chain][label_cl],self.clstr_labels[chain]['cluster'])
+            #self.binom_res[chain]['is_cluster']= self.binom_res[chain]['total_cluster'].apply(lambda x: 1 if x>1 else 0)
+            #self.binom_res[chain]['enriched_clstr'] =self.binom_res[chain].apply(lambda x:1 
+            #                                                                     if (x.fraction_matched>=self.threshold)
+            #                                                                     and (x.is_cluster==1) else 0,axis=1)
+            self.clstr_metrics[chain] = ml_utils.clstr_metrics(data.annot[chain][label_cl],self.clstr_labels[chain]['cluster'])
         
-        self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res[chain].rename({label_cl:'label_cluster'},axis=1)
+            self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res[chain].rename({label_cl:'label_cluster'},axis=1)
                                             , on='cluster',how='left').sort_values(self.annotation_id).reset_index(drop=True)
+            
+            self.purity = ml_utils.count_clstr_purity(self.binom_res[chain])
+            #self.mean_fraction_matched = statistics.mean(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
+            #self.median_fraction_matched = statistics.median(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
+            #print(f'mean fraction_matched only clusters: {self.mean_fraction_matched}')
+            #print(f'median fraction_matched only clusters: {self.median_fraction_matched}')
+            print(f'purity:{self.purity}')
         
         if chain == 'TRA_TRB':
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], data.annot[chain][[self.annotation_id] 
@@ -316,14 +322,8 @@ class TCRemb_clustering():
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain],data.annot[chain][[self.annotation_id] + data.tcr_columns])
         
         
-        self.purity = ml_utils.count_clstr_purity(self.binom_res[chain])
-        #self.mean_fraction_matched = statistics.mean(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
-        #self.median_fraction_matched = statistics.median(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
-        #print(f'mean fraction_matched only clusters: {self.mean_fraction_matched}')
-        #print(f'median fraction_matched only clusters: {self.median_fraction_matched}')
-        print(f'purity:{self.purity}')
         
-    def silhouette_clusters(self, X_data, chain, label):
+    def silhouette_clusters(self, X_data, chain):
         X_data = X_data.drop(self.annotation_id, axis=1, errors = 'ignore')
     
         data_len = len(X_data)
