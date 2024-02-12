@@ -213,20 +213,23 @@ class TCRemb:
                                                                                                                                'ignore').sort_values(self.annotation_id).reset_index(drop=True)
         
         elif chain=='TRA_TRB':
-            dists_data = self.annot[chain][[self.annotation_id + self.colonotype_id] +list(self.clonotype_id_dict[chain].values())]
-            #dists_data['id'] = dists_data.groupby(list(self.clonotype_id_dict[chain].values()),dropna=False).ngroup()
-            annot_clones = dists_data[[self.annotation_id, self.colonotype_id]]
+            dists_data = self.annot[chain][[self.annotation_id, self.clonotype_id] +list(self.clonotype_id_dict[chain].values())]
+            annot_clones = dists_data[[self.annotation_id, self.clonotype_id]]
             
-            dists_data = dists_data.drop(self.annotation_id,axis=1).drop_duplicates().reset_index()
-            #.drop_duplicates().reset_index(drop=True)
+            
+            
+            dists_data = dists_data.drop(self.annotation_id,axis=1).drop_duplicates().reset_index(drop=True)
             chain_1 = 'TRA'
-            dists_data = dists_data.merge(self.dists[chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
+            dists_data_a = dists_data.merge(self.dists[chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
+            dists_data_a = dists_data_a.drop(list(self.clonotype_id_dict[chain].values()),axis=1)
             chain_1 = 'TRB'
-            dists_data = dists_data.merge(self.dists[chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
-            dists_data = dists_data.drop(list(self.clonotype_id_dict[chain].values()),axis=1)
+            dists_data_b = dists_data.merge(self.dists[chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
+            dists_data_b = dists_data_b.drop(list(self.clonotype_id_dict[chain].values()),axis=1)
             
-            self.pca_clones[chain] = ml_utils.pca_proc(dists_data, self.colonotype_id, self.__n_components)
-            self.pca[chain] = self.pca_clone[chain].merge(annot_clones).drop(self.colonotype_id,axis=1)
+            dists_data = dists_data_a.merge(dists_data_b, on = self.clonotype_id)
+            
+            self.pca_clones[chain] = ml_utils.pca_proc(dists_data, self.clonotype_id, self.__n_components)
+            self.pca[chain] = self.pca_clones[chain].merge(annot_clones).drop(self.clonotype_id,axis=1)
             
             #dists_data = self.annot[chain][[self.annotation_id] + list(self.clonotype_id_dict[chain].values())]
             #chain_1 = 'TRA'
