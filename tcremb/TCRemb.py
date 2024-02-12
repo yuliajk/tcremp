@@ -19,6 +19,7 @@ from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import label_binarize
 
+import tcremb.data_proc as data_proc
 import tcremb.ml_utils as ml_utils
 
 import tcremb.motif_logo as motif_logo
@@ -32,8 +33,7 @@ class TCRemb:
     annotation_id = 'annotId'
     random_state = 7
     
-    def __init__(self,run_name, input_data):
-        print(sys.path)
+    def __init__(self,run_name, input_data, data_id = None):
         self.clonotypes={}
         self.clonotype_label_pairs = {}
         self.annot={}
@@ -69,7 +69,7 @@ class TCRemb:
         self.clonotypes_path = { 'TRA' : self.outputs_path + 'clonotypes_TRA.txt', 'TRB' : self.outputs_path + 'clonotypes_TRB.txt'}
         self.dists_res_path = {'TRA' : self.outputs_path + 'res_TRA.txt', 'TRB': self.outputs_path + 'res_TRB.txt'}
         
-        
+        self.data_id = data_id
         self.input_data = input_data.copy()
         self.input_data = self.__annot_id(self.input_data, self.input_id)
 
@@ -78,20 +78,20 @@ class TCRemb:
         df[annotation_id_str]=df.index
         return df
     
-    def __filter_segments(self, chain, df_clones,segments_path='mir/resources/segments.txt'):
-        segs = pd.read_csv(segments_path,sep='\t')
-        segs = segs[segs['organism']=='HomoSapiens']
-        segs_ids = list(segs['id'].drop_duplicates())
-        if (chain=='TRA') or (chain=='TRB'):
-            df_clones = df_clones[df_clones['v'].isin(segs_ids)]
-            df_clones = df_clones[df_clones['j'].isin(segs_ids)]
-        if chain=='TRA_TRB':
-            df_clones = df_clones[df_clones['TRAV'].isin(segs_ids)]
-            df_clones = df_clones[df_clones['TRAJ'].isin(segs_ids)]
-            df_clones = df_clones[df_clones['TRBV'].isin(segs_ids)]
-            df_clones = df_clones[df_clones['TRBV'].isin(segs_ids)]
-        df_clones = df_clones.reset_index(drop=True)
-        return df_clones
+#    def __filter_segments(self, chain, df_clones,segments_path='mir/resources/segments.txt'):
+#        segs = pd.read_csv(segments_path,sep='\t')
+#        segs = segs[segs['organism']=='HomoSapiens']
+#        segs_ids = list(segs['id'].drop_duplicates())
+#        if (chain=='TRA') or (chain=='TRB'):
+#            df_clones = df_clones[df_clones['v'].isin(segs_ids)]
+#            df_clones = df_clones[df_clones['j'].isin(segs_ids)]
+#        if chain=='TRA_TRB':
+#            df_clones = df_clones[df_clones['TRAV'].isin(segs_ids)]
+#            df_clones = df_clones[df_clones['TRAJ'].isin(segs_ids)]
+#            df_clones = df_clones[df_clones['TRBV'].isin(segs_ids)]
+#            df_clones = df_clones[df_clones['TRBV'].isin(segs_ids)]
+#        df_clones = df_clones.reset_index(drop=True)
+#        return df_clones
 
     def __assign_clones_ids(self, data):
         df = data.copy()
@@ -115,18 +115,25 @@ class TCRemb:
 
     def __clonotypes_prep(self, clones_df,clonotypes_path, chain, tcr_columns, clonotype_id_str):
         clonotypes = clones_df[clones_df['chain']==chain]
+        clonotypes = data_proc.remove_asterisk(clonotypes, tcr_columns)
+        clonotypes = data_proc.remove_backslash(clonotypes, tcr_columns)
+        clonotypes = data_proc.filter_clones_data(clonotypes, tcr_columns)
+        clonotypes = data_proc.filter_segments(clonotypes)
+        
         clonotypes = clonotypes[tcr_columns + [clonotype_id_str]].drop_duplicates().reset_index(drop=True)
         clonotypes.to_csv(clonotypes_path, sep='\t')
         return clonotypes
 
     
     def tcremb_clonotypes(self,chain):
-        data_tt = self.__filter_segments(chain, self.input_data)
+        #data_tt = self.__filter_segments(chain, self.input_data)
+        data_tt = self.input_data.copy()
         if (chain=='TRA') or (chain=='TRB'):
             data_tt = self.__assign_clones_ids(data_tt)
             data_tt['clone_size'] = data_tt.groupby(self.clonotype_id)[self.input_id].transform('count')
             self.clonotypes[chain] = self.__clonotypes_prep(data_tt, self.clonotypes_path[chain], chain, self.tcr_columns, self.clonotype_id)
             
+            data_tt = data_tt[data_tt[self.clonotype_id].isin(self.clonotypes[chain][self.clonotype_id])]
             self.annot[chain] = self.__annot_id(data_tt[data_tt['chain']==chain].reset_index(drop=True), self.annotation_id)
             
         elif chain=='TRA_TRB':
@@ -136,7 +143,7 @@ class TCRemb:
             data_chain_1 = data_chain_1.rename(self.__rename_tcr_columns_paired[chain_1],axis=1)
             data_chain_1['chain']=chain_1
             self.clonotypes[chain_1] = self.__clonotypes_prep(data_chain_1, self.clonotypes_path[chain_1], chain_1, self.tcr_columns, self.clonotype_id)
-            self.annot[chain_1] = self.__annot_id(data_chain_1.reset_index(drop=True), self.annotation_id)
+            self.annot[chain_1] = self.__annot_id(data_chain_1.reset_index(drop=True), self.annotation_id)                  
             
             chain_1 = 'TRB'
             data_tt = self.__assign_clones_ids_paired(data_tt, chain_1)
@@ -148,6 +155,12 @@ class TCRemb:
             
             data_tt = self.__assign_clones_ids_paired(data_tt, chain)
             data_tt['clone_size'] = data_tt.groupby(self.clonotype_id)[self.input_id].transform('count')
+            
+            chain_1 = 'TRA'
+            data_tt = data_tt[data_tt[self.clonotype_id_dict[chain_1]].isin(self.clonotypes[chain_1][self.clonotype_id])]
+            chain_1 = 'TRB'
+            data_tt = data_tt[data_tt[self.clonotype_id_dict[chain_1]].isin(self.clonotypes[chain_1][self.clonotype_id])]
+            
             self.annot[chain] = self.__annot_id(data_tt.reset_index(drop=True), self.annotation_id)
 
         else:
@@ -169,25 +182,25 @@ class TCRemb:
     
         pars = parser.ClonotypeTableParser(lib=lib,
                                   )
-        data_proc = pars.parse(source=clonotypes_path)
-        data_proc = [x for x in data_proc if len(x.cdr3aa) in range(7, 23)]
-        print(data_proc[0:10])
-        return lib, db, data_proc
+        data_parse = pars.parse(source=clonotypes_path)
+        data_parse = [x for x in data_parse if len(x.cdr3aa) in range(7, 23)]
+        print(data_parse[0:10])
+        return lib, db, data_parse
 
-    def __mir_launch(self, chain, lib, db, data_proc):
+    def __mir_launch(self, chain, lib, db, data_parse):
         aligner = ClonotypeAligner.from_library(lib=lib)
         matcher = DenseMatcher(db, aligner)
         
         start = time.time()
-        res = matcher.match_to_df(data_proc)
+        res = matcher.match_to_df(data_parse)
         end = time.time()
         print(np.shape(res))
         print(end - start)
         return res
 
     def tcremb_dists_count(self, chain):
-        lib, db, data_proc = self.__data_parse_mirpy(chain, self.__prototypes_path[chain],self.clonotypes_path[chain])
-        res = self.__mir_launch(chain, lib, db, data_proc)
+        lib, db, data_parse = self.__data_parse_mirpy(chain, self.__prototypes_path[chain],self.clonotypes_path[chain])
+        res = self.__mir_launch(chain, lib, db, data_parse)
         res.to_csv(self.dists_res_path[chain], sep='\t', index = False)
     
     def __mir_results_proc(self, chain, res_path_chain, clonotypes_path_chain, clonotype_id_str):
@@ -263,19 +276,23 @@ class TCRemb_clustering():
         self.silhouette_n_clusters = {}
     
     def clstr(self, chain, data, label_cl, model=None):
-        df = data.annot[chain][[data.clonotype_id, data.annotation_id, label_cl]]
-        annot_clones = df[[data.clonotype_id, data.annotation_id]]
-        df = df.merge(data.pca[chain]).drop_duplicates([data.clonotype_id, label_cl])
-        y_data = df[label_cl]
-        X_data = df.drop([data.annotation_id,label_cl], axis=1, errors = 'ignore')
-        X_data_clones = data.pca_clones[chain]
+        #df = data.annot[chain][[data.clonotype_id, data.annotation_id, label_cl]]
+        #annot_clones = df[[data.clonotype_id, data.annotation_id]]
+        #df = df.merge(data.pca[chain]).drop_duplicates([data.clonotype_id, label_cl])
+        #y_data = df[label_cl]
+        #X_data = df.drop([data.annotation_id,label_cl], axis=1, errors = 'ignore')
+        #X_data_clones = data.pca_clones[chain]
+        
+        annot_clones = data.annot[chain][[data.clonotype_id, data.annotation_id]]
+        X_data = data.pca_clones[chain]
         
         if model is None:
-            self.silhouette_clusters(y_data, X_data.drop(data.clonotype_id,axis=1), chain,label_cl)
+            self.silhouette_clusters(X_data.drop(data.clonotype_id,axis=1), chain,label_cl)
             model =  KMeans(n_clusters=self.silhouette_n_clusters[chain], random_state=7)
         
         
-        clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data_clones , data.clonotype_id)
+        #clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data_clones , data.clonotype_id)
+        clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data , data.clonotype_id)
         self.clstr_labels[chain] = clstr_labels.merge(annot_clones).drop(data.clonotype_id, axis=1)
         #self.__clstr_metrics(chain, data, label_cl)
         
@@ -306,10 +323,10 @@ class TCRemb_clustering():
         #print(f'median fraction_matched only clusters: {self.median_fraction_matched}')
         print(f'purity:{self.purity}')
         
-    def silhouette_clusters(self, y_data, X_data, chain, label):
+    def silhouette_clusters(self, X_data, chain, label):
         X_data = X_data.drop(self.annotation_id, axis=1, errors = 'ignore')
     
-        data_len = len(y_data)
+        data_len = len(X_data)
     
         range_n_clusters = [round(data_len*0.005),round(data_len*0.01), round(data_len*0.05) , round(data_len*0.1), round(data_len*0.15)
                         ,round(data_len*0.2), round(data_len*0.25), round(data_len*0.3)

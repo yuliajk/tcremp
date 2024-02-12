@@ -21,7 +21,7 @@ def remove_backslash(data, tcr_columns):
     return df
 
 def filter_clones_data(df_clones, tcr_columns):
-    print(df_clones.shape)
+    #print(df_clones.shape)
     df_clones = df_clones[-df_clones[tcr_columns[0]].isna()]
     df_clones = df_clones[-df_clones[tcr_columns[1]].isna()]
     df_clones = df_clones[-df_clones[tcr_columns[2]].isna()]
@@ -37,7 +37,7 @@ def filter_clones_data(df_clones, tcr_columns):
     df_clones = df_clones[-df_clones[tcr_columns[0]].str.contains('\_')]
     df_clones = df_clones[-df_clones[tcr_columns[0]].str.contains('\*')]
     df_clones = df_clones.reset_index(drop=True)
-    print(df_clones.shape)
+    #print(df_clones.shape)
     return df_clones
 
 def filter_segments(df_clones,segments_path='mir/resources/segments.txt'):

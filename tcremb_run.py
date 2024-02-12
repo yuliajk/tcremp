@@ -21,9 +21,9 @@ import tcremb.data_proc as data_proc
 
 
 tcr_columns = ['cdr3aa','v','j','chain']
-clonotype_id_column = 'cloneId'
-data_id= 'data_id'
-annotation_id = 'annotId'
+#clonotype_id_column = 'cloneId'
+
+#annotation_id = 'annotId'
 
 #pairing_id = 'barcode'
 annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
@@ -32,9 +32,12 @@ annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {
 def clustering(args, tcremb,outputs_path):
     kmeans = TCRemb.TCRemb_clustering('KMeans')
     kmeans.clstr(args.chain, tcremb, args.label)
-    df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
+    if tcremb.data_id is None:
+        df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
+    else:
+        df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.data_id, tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
     df = df.merge(tcremb.tsne[args.chain])
-    df = df.merge(tcremb.tsne_pca[args.chain].reanme({'DM1':'DM1_clones','DM2':'DM2_clones'},axis=1))
+    df = df.merge(tcremb.tsne_clones[args.chain].rename({'DM1':'DM1_clones','DM2':'DM2_clones'},axis=1))
     df.to_csv(f'{outputs_path}tcremb_clstr_res_{args.chain}.txt', sep='\t', index=False)
     
 def classsification(args, tcremb,outputs_path):
@@ -61,6 +64,9 @@ def main():
     parser.add_argument('--label', type=str,
                         help='label of clsasses of data for clustering and classification')
     
+    parser.add_argument('--data_id', type=str,
+                        help='column with id of ypur input data. if you would like this id to be added to output of clustering or classifications')
+    
     parser.add_argument('--chain', type=str,required=True,
                         help='TRA or TRB if single, TRA_TRB if paired')
     
@@ -80,7 +86,7 @@ def main():
     
     print(args.mode)
     
-    tcremb = TCRemb.TCRemb(args.runname, data_preped)
+    tcremb = TCRemb.TCRemb(args.runname, data_preped, data_id=args.data_id)
     tcremb.tcremb_clonotypes(args.chain)
     
     if not args.skip_scores:
