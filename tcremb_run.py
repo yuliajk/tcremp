@@ -30,7 +30,7 @@ annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {
 
 
 def clustering(args, tcremb,outputs_path):
-    output_columns = [tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']
+    output_columns = [tcremb.annotation_id,tcremb.clonotype_id, 'clone_size']
     kmeans = TCRemb.TCRemb_clustering('KMeans')
     kmeans.clstr(args.chain, tcremb, args.label)
     if tcremb.data_id is not None:
