@@ -98,7 +98,6 @@ data_preped = pd.read_csv('my_data.txt',sep='\t')
 
 **Single chain pipeline** 
 
-
 ```
 tcremb = TCRemb.TCRemb(run_name, data_preped)
 tcremb.tcremb_clonotypes('TRA')
@@ -114,24 +113,52 @@ tcremb.tcremb_pca('TRB')
 tcremb.tcremb_tsne('TRB')
 ```
 
+**Data stored in object**
+```
+tcremb.input_data
+tcremb.annot['TRA']
+tcremb.clonotypes['TRA']
+tcremb.pca['TRA']
+tcremb.pca_clones['TRA']
+tcremb.tsne['TRA']
+tcremb.tsne_tsne['TRA']
+```
+
+**Paired chains pipeline** 
+```
+run_name = 'my_paired_run'
+chain = 'TRA_TRB'
+tcremb_paired = TCRemb.TCRemb(run_name, data_preped)
+tcremb.tcremb_clonotypes(chain)
+tcremb.tcremb_dists_count('TRA')
+tcremb.tcremb_dists_count('TRB')
+tcremb.tcremb_dists('TRA')
+tcremb.tcremb_dists('TRB')
+tcremb.tcremb_pca(chain)
+tcremb.tcremb_tsne(chain)
+
+```
+
 **TSNE visualization**
 Plot by all data instances with clonotypes duplicates. For example all cells or all rows from database
 ```
-chain = 'TRA'
+chain = 'TRA_TRB'
 ml_utils.tsne_plot(pd.merge(tcremb.tsne[chain],tcremb.annot[chain]),  label, f'My_data, {chain}, TSNE colored by {label}')
 ```
 Example
-<img width="577" alt="image" src="https://github.com/yuliajk/tcr_emb/assets/74723905/0dda5ceb-3dab-42f1-9eda-57dfef50268d">
+<img width="529" alt="image" src="https://github.com/yuliajk/tcr_emb/assets/74723905/296ab510-8308-4c54-8bc1-d73b600114c0">
+
 
 
 
 Plot by clonotypes with clonotype size - coint of input instances with this clonotype.
 ```
-chain = 'TRA'
-ml_utils.tsne_plot(pd.merge(tcremb.tsne[chain],tcremb.annot[chain]), label_high, f'My_data, {chain}, TSNE colored by {label}', to_size = 'clone_size')
+chain = 'TRA_TRB'
+ml_utils.tsne_plot(pd.merge(tcremb.tsne_clones[chain],tcremb.annot[chain]), label_high, f'My_data, {chain}, TSNE colored by {label}', to_size = 'clone_size')
 ```
 Example
-<img width="616" alt="image" src="https://github.com/yuliajk/tcr_emb/assets/74723905/d42f9352-e1e4-4ec8-b249-703bd892db3a">
+<img width="533" alt="image" src="https://github.com/yuliajk/tcr_emb/assets/74723905/6a11a2de-bd98-4d99-817d-5b1bf748a66f">
+
 
 
 **Clustering**
