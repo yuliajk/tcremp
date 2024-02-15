@@ -188,20 +188,20 @@ class TCRemb:
         print(data_parse[0:10])
         return lib, db, data_parse
 
-    def __mir_launch(self, chain, lib, db, data_parse):
+    def __mir_launch(self, chain, lib, db, data_parse, nproc, chunk_sz):
         aligner = ClonotypeAligner.from_library(lib=lib)
         matcher = DenseMatcher(db, aligner)
         
         start = time.time()
-        res = matcher.match_to_df(data_parse)
+        res = matcher.match_to_df(data_parse, nproc=nproc)
         end = time.time()
         print(np.shape(res))
         print(end - start)
         return res
 
-    def tcremb_dists_count(self, chain):
+    def tcremb_dists_count(self, chain, nproc= None, chunk_sz=100):
         lib, db, data_parse = self.__data_parse_mirpy(chain, self.__prototypes_path[chain],self.clonotypes_path[chain])
-        res = self.__mir_launch(chain, lib, db, data_parse)
+        res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
         res.to_csv(self.dists_res_path[chain], sep='\t', index = False)
     
     def __mir_results_proc(self, chain, res_path_chain, clonotypes_path_chain, clonotype_id_str):
