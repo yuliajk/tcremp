@@ -100,7 +100,10 @@ def run_tcremb(data_path, chain, output_suf, skip_scores=False):
 
     # Run TCRemb
     t0 = time.time()
-    command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --data_id data_id'
+    if skip_scores == True:
+            command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --data_id data_id --skip_scores True'
+    else:
+        command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --data_id data_id'
     print(command)
     os.system(command)
     t1 = time.time()

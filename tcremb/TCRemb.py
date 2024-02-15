@@ -14,6 +14,7 @@ from collections import Counter
 import time
 
 import statistics
+from scipy.spatial.distance import pdist, squareform, cdist
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier
@@ -307,6 +308,8 @@ class TCRemb_clustering():
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res[chain].rename({label_cl:'label_cluster'},axis=1)
                                             , on='cluster',how='left').sort_values(self.annotation_id).reset_index(drop=True)
             
+            self.__is_cluster_by_between_metric(data, chain)
+            
             self.purity = ml_utils.count_clstr_purity(self.binom_res[chain])
             #self.mean_fraction_matched = statistics.mean(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
             #self.median_fraction_matched = statistics.median(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
@@ -340,6 +343,41 @@ class TCRemb_clustering():
         silhouette_avg_scores = ml_utils.silhouette_avg_scores_kmeans(X_data,range_n_clusters)
 
         self.silhouette_n_clusters[chain] = list(silhouette_avg_scores.keys())[list(silhouette_avg_scores.values()).index(max(silhouette_avg_scores.values()))]
+        
+        
+    def __is_cluster_by_between_metric(self, data,chain):
+        df = self.clstr_labels[chain].copy()
+        df = df[(df['total_cluster']>1)]
+        all_cl = list(df['cluster'].drop_duplicates())
+    
+        df_pca_cl = df[['cluster','annotId']].merge(data.pca[chain])
+        df_centrs = pd.DataFrame(self.model[chain].cluster_centers_)
+    
+        min_between_cl = min(pdist(df_centrs))
+
+        all_dists = []
+        for i in all_cl:
+            df_cl = df_pca_cl[df_pca_cl['cluster']==i].drop(['cluster','annotId'],axis=1)
+            centr = df_centrs.iloc[i]
+            cl_dists = []
+            for _,j in df_cl.iterrows():
+                cl_dists.append(cdist(np.array([centr]),np.array([j]),'euclidean')[0][0])
+            all_dists.append(statistics.mean(cl_dists))
+
+        cl_mean_dist = statistics.mean(all_dists)
+    
+        cl_dists = pd.DataFrame([all_cl,all_dists]).T.rename({0:'cluster',1:'dist'},axis=1)
+
+        br = self.binom_res[chain].copy()
+        br = br.merge(cl_dists.merge(self.binom_res[chain]),how='left')
+
+        try_dist = statistics.mean([cl_mean_dist,min_between_cl])
+        br['pred_enriched_min_between']=br.apply(lambda r: 1 if (r.is_cluster == 1) & (r.dist<=try_dist) else 0, axis = 1)
+
+        pred_enriched_between_cls = list(br[br['pred_enriched_min_between']==1]['cluster'])
+
+        self.clstr_labels[chain]['is_cluster'] = self.clstr_labels[chain]['cluster'].apply(lambda x: 1 if x in pred_enriched_between_cls else 0)
+
         
     def __plot_logo(self, clstr_data, chain, c, list_ax):
         
