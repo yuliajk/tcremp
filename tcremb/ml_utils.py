@@ -91,7 +91,7 @@ def tsne_plot(data_plot, to_color, title, to_size=None,suptitle=None,legend=True
     if to_size is None:
         sns.scatterplot(x='DM1', y='DM2', data=data_plot.sort_values(to_color), hue=to_color, s=2,legend = legend,palette=custom_palette, ax=ax)
     else:
-        sns.scatterplot(x='DM1', y='DM2', data=data_plot.sort_values(to_color), hue=to_color,size=to_size, sizes=(1, 100),legend = legend,palette=custom_palette, ax=ax)
+        sns.scatterplot(x='DM1', y='DM2', data=data_plot.sort_values(to_color), hue=to_color,size=to_size, sizes=(2, 100),legend = legend,palette=custom_palette, ax=ax)
     ax.set_title(title)
     ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
 
@@ -123,9 +123,12 @@ def clsf_metrics(y_test,pred,average='micro'):
     }
     return clsf_metrics
 
+
 def count_clstr_purity(binom_res):
     binom_res_clstr = binom_res[binom_res['is_cluster']==1]
-    return sum(binom_res_clstr['count_matched'])/sum(binom_res_clstr['total_cluster'])
+    if len(binom_res_clstr)!=0:
+        return sum(binom_res_clstr['count_matched'])/sum(binom_res_clstr['total_cluster'])
+
 
 def clstr_metrics(y_data, labels):
     clstr_metrics = {
