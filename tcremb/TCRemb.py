@@ -565,7 +565,7 @@ class TCRemb_clustering():
         sns.histplot(plot_v_j[['count','TRBJ']],y='TRBJ',ax=list_ax[5])
         
         
-    def clstrs_motif(self, data, chain, n_head_clstrs):
+    def clstrs_motif(self, data, chain, n_head_clstrs, sfig=None):
         if (chain=='TRA') or (chain=='TRB'):
             plt_clusters = list(self.binom_res[chain].sort_values('p_value').head(n_head_clstrs)['cluster'])
             clstr_data = pd.merge(self.clstr_labels[chain],data.annot[chain])
@@ -573,18 +573,23 @@ class TCRemb_clustering():
             clstr_data['cdr3aa_len'] = clstr_data['cdr3aa'].apply(len)
         
             n_rows = math.ceil(len(plt_clusters)/4)
+            
+            if sfig is None:
+                sfig = plt.figure(figsize=(28,6*n_rows))
+                outer_grid = gridspec.GridSpec(n_rows, 4,figure=sfig)        
+            else:
+                outer_grid = gridspec.GridSpec(n_rows, 4,figure=sfig)
 
-            fig = plt.figure(figsize=(28, 7*n_rows))
-            outer_grid = gridspec.GridSpec(n_rows, 4,figure=fig)
+
             gs = []
             ax_list = []
             for i in range(len(plt_clusters)):
                 cl_row = math.ceil((i+1)/4)-1
                 cl_col = i%4
-                gs.append(outer_grid[cl_row,cl_col].subgridspec(7, 2))
-                ax_list.append([fig.add_subplot(gs[i][1:4, :2])
-                                ,fig.add_subplot(gs[i][5:7, 0])
-                                ,fig.add_subplot(gs[i][5:7, 1])])
+                gs.append(outer_grid[cl_row,cl_col].subgridspec(6, 2))
+                ax_list.append([sfig.add_subplot(gs[i][:3, :2])
+                                ,sfig.add_subplot(gs[i][4:6, 0])
+                                ,sfig.add_subplot(gs[i][3:6, 1])])
     
                 self.__plot_logo(clstr_data, chain, plt_clusters[i], ax_list[i])
 
@@ -597,20 +602,24 @@ class TCRemb_clustering():
     
             n_rows = math.ceil(len(plt_clusters)/4)
 
-            fig = plt.figure(figsize=(28, 8*n_rows))
-            outer_grid = gridspec.GridSpec(n_rows, 4,figure=fig)
+            if sfig is None:
+                sfig = plt.figure(figsize=(28,8*n_rows))
+                outer_grid = gridspec.GridSpec(n_rows, 4,figure=sfig)        
+            else:
+                outer_grid = gridspec.GridSpec(n_rows, 4,figure=sfig)
+        
             gs = []
             ax_list = []
             for i in range(len(plt_clusters)):
                 cl_row = math.ceil((i+1)/4)-1
                 cl_col = i%4
                 gs.append(outer_grid[cl_row,cl_col].subgridspec(14, 2))
-                ax_list.append([fig.add_subplot(gs[i][1:4, :2])
-                                ,fig.add_subplot(gs[i][5:8, :2])
-                                ,fig.add_subplot(gs[i][9:11, 0])
-                                ,fig.add_subplot(gs[i][9:11, 1])
-                                ,fig.add_subplot(gs[i][12:14, 0])
-                                ,fig.add_subplot(gs[i][12:14, 1])])
+                ax_list.append([sfig.add_subplot(gs[i][1:4, :2])
+                                ,sfig.add_subplot(gs[i][5:8, :2])
+                                ,sfig.add_subplot(gs[i][9:11, 0])
+                                ,sfig.add_subplot(gs[i][9:11, 1])
+                                ,sfig.add_subplot(gs[i][12:14, 0])
+                                ,sfig.add_subplot(gs[i][12:14, 1])])
     
                 self.__plot_logo_paired(clstr_data, chain, plt_clusters[i], ax_list[i])
         else:
