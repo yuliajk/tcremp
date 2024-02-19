@@ -589,7 +589,7 @@ class TCRemb_clustering():
                 gs.append(outer_grid[cl_row,cl_col].subgridspec(6, 2))
                 ax_list.append([sfig.add_subplot(gs[i][:3, :2])
                                 ,sfig.add_subplot(gs[i][4:6, 0])
-                                ,sfig.add_subplot(gs[i][3:6, 1])])
+                                ,sfig.add_subplot(gs[i][4:6, 1])])
     
                 self.__plot_logo(clstr_data, chain, plt_clusters[i], ax_list[i])
 
