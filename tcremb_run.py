@@ -31,8 +31,8 @@ annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {
 
 def clustering(args, tcremb,outputs_path):
     output_columns = [tcremb.annotation_id,tcremb.clonotype_id, 'clone_size']
-    kmeans = TCRemb.TCRemb_clustering('KMeans')
-    kmeans.clstr(args.chain, tcremb, args.label)
+    kmeans = TCRemb.TCRemb_clustering(args.clstr_model)
+    kmeans.clstr(args.chain, tcremb, args.label, model = args.clstr_model)
     if tcremb.data_id is not None:
         output_columns.append(tcremb.data_id)
     if args.label is not None:
@@ -76,6 +76,9 @@ def main():
     
     parser.add_argument('--mode', type=str, default='clstr',
                         help='clstr - clusteting, clsf - classification, clstr_clsf - both, clstr_pred - clustering with train and pred datasets, clsf_pred - classification with traning and prediction of pred dataset, clstr_clsf_pred, scores - only scores count')
+    
+    parser.add_argument('--clstr_model', type=str, default='kmeans',
+                        help='name of clustering algorithm, dbscan or kmeans')
     
     parser.add_argument('--skip_scores', type=bool, default=False
                         , help='If score are already calculated pass skip_scores True')

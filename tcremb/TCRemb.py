@@ -17,6 +17,7 @@ import statistics
 from scipy.spatial.distance import pdist, squareform, cdist
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import label_binarize
 
@@ -175,15 +176,6 @@ class TCRemb:
         else:
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
      
-    
-#    def tcremb_clonotype_label_pairs(self, chain, label):
-#        self.__assign_clone_label_pairs_ids(chain, label)
-#        if (chain=='TRA') or (chain=='TRB'):
-#            self.clonotype_label_pairs[chain] = self.annot[chain][[self.clonotype_id, label, self.clonotyoe_label_id]].drop_duplicates().reset_index(drop=True)
-#        elif chain=='TRA_TRB':
-#            self.clonotype_label_pairs[chain] = self.annot[chain][list(self.clonotype_id_dict[chain].values()) + [label, self.clonotyoe_label_id]].drop_duplicates().reset_index(drop=True)
-#        else:
-#            print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
    
     def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
         lib = SegmentLibrary.load_default(genes=chain)
@@ -379,28 +371,31 @@ class TCRemb_clustering():
         #self.n_clusters = {}
         self.silhouette_n_clusters = {}
     
-    def clstr(self, chain, data, label_cl=None, model=None):
-        #df = data.annot[chain][[data.clonotype_id, data.annotation_id, label_cl]]
-        #annot_clones = df[[data.clonotype_id, data.annotation_id]]
-        #df = df.merge(data.pca[chain]).drop_duplicates([data.clonotype_id, label_cl])
-        #y_data = df[label_cl]
-        #X_data = df.drop([data.annotation_id,label_cl], axis=1, errors = 'ignore')
-        #X_data_clones = data.pca_clones[chain]
+    def clstr(self, chain, data, label_cl=None, model='kmeans'):
         
         annot_clones = data.annot[chain][[data.clonotype_id, data.annotation_id]]
-        X_data = data.pca_clones[chain]
+        X_data = data.pca_clones[chain].copy()
         
-        if model is None:
+        check_between = False
+        model_name = None
+        if (model == 'kmeans'):
             self.silhouette_clusters(X_data.drop(data.clonotype_id,axis=1), chain)
+            model_name = model
             model =  KMeans(n_clusters=self.silhouette_n_clusters[chain], random_state=7)
+            check_between = True
+            
+        if model=='dbscan':
+            model_name = model
+            model = DBSCAN(eps=3, min_samples=2)        
         
-        
-
         clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data , data.clonotype_id)
         self.clstr_labels[chain] = clstr_labels.merge(annot_clones).drop(data.clonotype_id, axis=1)
         
         if label_cl is not None:
             self.binom_res[chain] = ml_utils.binominal_test(pd.merge(self.clstr_labels[chain],data.annot[chain]), 'cluster', label_cl, self.threshold)
+            
+            if model_name=='dbscan':
+                self.binom_res[chain]['is_cluster'] = self.binom_res[chain].apply(lambda x: x.is_cluster if x.cluster != -1 else 0,axis=1)
         
             #self.binom_res[chain]['is_cluster']= self.binom_res[chain]['total_cluster'].apply(lambda x: 1 if x>1 else 0)
             #self.binom_res[chain]['enriched_clstr'] =self.binom_res[chain].apply(lambda x:1 
@@ -411,7 +406,8 @@ class TCRemb_clustering():
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res[chain].rename({label_cl:'label_cluster'},axis=1)
                                             , on='cluster',how='left').sort_values(self.annotation_id).reset_index(drop=True)
             
-            self.__is_cluster_by_between_metric(data, chain)
+            if check_between:
+                self.__is_cluster_by_between_metric(data, chain)
             
             self.purity = ml_utils.count_clstr_purity(self.binom_res[chain])
             #self.mean_fraction_matched = statistics.mean(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
@@ -457,6 +453,7 @@ class TCRemb_clustering():
         df_centrs = pd.DataFrame(self.model[chain].cluster_centers_)
     
         min_between_cl = min(pdist(df_centrs))
+        mean_between_cl = statistics.mean(df_centrs)
 
         all_dists = []
         for i in all_cl:
@@ -475,6 +472,8 @@ class TCRemb_clustering():
         br = br.merge(cl_dists.merge(self.binom_res[chain]),how='left')
 
         try_dist = statistics.mean([cl_mean_dist,min_between_cl])
+        #try_dist = min_between_cl
+        #try_dist = statistics.mean([min_between_cl, mean_between_cl])
         br['pred_enriched_min_between']=br.apply(lambda r: 1 if (r.is_cluster == 1) & (r.dist<=try_dist) else 0, axis = 1)
 
         pred_enriched_between_cls = list(br[br['pred_enriched_min_between']==1]['cluster'])

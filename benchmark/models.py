@@ -7,10 +7,10 @@ import seaborn as sns
 import tcremb.ml_utils as ml_utils
 
 
-def run_GIANA(data_df, chain, output_suf,cpus=2):
+def run_GIANA(data_df, chain, output_suf,cpus=2, label = 'antigen.epitope'):
     '''Run GIANA clustering algorithm
 '''
-    df = data_df[data_df['chain']==chain][['cdr3aa','v','antigen.epitope','data_id']].reset_index(drop=True)
+    df = data_df[data_df['chain']==chain][['cdr3aa','v',label,'data_id']].reset_index(drop=True)
     df = df.rename({'cdr3aa':'CDR3','v':'V'},axis=1)
     # Reformat input for GIANA
     seqs = df[['CDR3','V']]
@@ -40,17 +40,17 @@ def run_GIANA(data_df, chain, output_suf,cpus=2):
     
     giana_data = pd.merge(df, results.drop_duplicates(),on=['CDR3','V'])
     
-    binom_res = ml_utils.binominal_test(giana_data, 'cluster', 'antigen.epitope')
-    binom_res = binom_res.rename({'antigen.epitope':'label_cluster'},axis=1)
+    binom_res = ml_utils.binominal_test(giana_data, 'cluster', label)
+    binom_res = binom_res.rename({label:'label_cluster'},axis=1)
     giana_data = giana_data.merge(binom_res)
     giana_data.to_csv(f'benchmark/outputs/giana_res_{chain}_{output_suf}.txt',sep='\t', index=False)
 
     return giana_data
 
 
-def run_ismart(data_df, chain, output_suf, cpus=2):
+def run_ismart(data_df, chain, output_suf, cpus=2, label = 'antigen.epitope'):
     
-    df = data_df[data_df['chain']==chain][['cdr3aa','v','antigen.epitope','data_id']].reset_index(drop=True)
+    df = data_df[data_df['chain']==chain][['cdr3aa','v',label,'data_id']].reset_index(drop=True)
     df = df.rename({'cdr3aa':'CDR3','v':'V'},axis=1)
     
     # Reformat input for iSMART
@@ -83,17 +83,17 @@ def run_ismart(data_df, chain, output_suf, cpus=2):
     
     ismart_data = pd.merge(df, results.drop_duplicates(),on=['CDR3','V'])
     
-    binom_res = ml_utils.binominal_test(ismart_data, 'cluster', 'antigen.epitope')
-    binom_res = binom_res.rename({'antigen.epitope':'label_cluster'},axis=1)
+    binom_res = ml_utils.binominal_test(ismart_data, 'cluster', label)
+    binom_res = binom_res.rename({label:'label_cluster'},axis=1)
     ismart_data = ismart_data.merge(binom_res)
     ismart_data.to_csv(f'benchmark/outputs/ismart_res_{chain}_{output_suf}.txt',sep='\t')
 
     return ismart_data
 
 
-def run_tcremb(data_path, chain, output_suf, skip_scores=False):
+def run_tcremb(data_path, chain, output_suf, skip_scores=False, label = 'antigen.epitope', model='kmeans' ):
     run_name = f'compare_{output_suf}'
-    label_cl = 'antigen.epitope'
+    label_cl = label
     
     #cdir = os.getcwd()
     print('TCRemb clustering')
@@ -101,9 +101,9 @@ def run_tcremb(data_path, chain, output_suf, skip_scores=False):
     # Run TCRemb
     t0 = time.time()
     if skip_scores == True:
-            command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --data_id data_id --skip_scores True'
+            command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --clstr_model {model} --data_id data_id --skip_scores True'
     else:
-        command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --data_id data_id'
+        command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --clstr_model {model} --data_id data_id'
     print(command)
     os.system(command)
     t1 = time.time()

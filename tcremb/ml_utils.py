@@ -192,17 +192,17 @@ def plot_roccurve_multi(classes_list,y_test_curv,y_score,title, ax,custom_palett
         fig, ax = plt.subplots(figsize=(7, 7))
     for class_id in range(len(classes_list)):
         if custom_palette is None:
-            color = colors[class_id]
+            color = None#colors[class_id]
         else:
             color = custom_palette[classes_list[class_id]]
-            
-        RocCurveDisplay.from_predictions(
-            y_test_curv[:, class_id],
-            y_score[:, class_id],
-            name=f"ROC curve for {classes_list[class_id]}",
-            ax=ax,
-            color = color,
-            plot_chance_level=(class_id == 2),)
+        if sum(y_test_curv[:, class_id])!=0:
+            RocCurveDisplay.from_predictions(
+                y_test_curv[:, class_id],
+                y_score[:, class_id],
+                name=f"ROC curve for {classes_list[class_id]}",
+                ax=ax,
+                color = color,
+                plot_chance_level=(class_id == 2),)
     if f1_weighted is not None:
         print(f"accuracy: {round(test_acc,2)}\nf1_weighted:{round(f1_weighted['f1'],2)}\nprecision:{round(f1_weighted['precision'],2)}\nrecall:{round(f1_weighted['recall'],2)}")
         #ax.text(1.7,0.2,f"accuracy: {round(test_acc,2)}\nf1_weighted:{round(f1_weighted['f1'],2)}\nprecision:{round(f1_weighted['precision'],2)}\nrecall:{round(f1_weighted['recall'],2)}")
