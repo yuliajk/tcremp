@@ -40,12 +40,12 @@ def filter_clones_data(df_clones, tcr_columns):
     #print(df_clones.shape)
     return df_clones
 
-def filter_segments(df_clones,segments_path='mir/resources/segments.txt'):
+def filter_segments(df_clones,segments_path='mir/resources/segments.txt', v = 'v', j='j'):
     segs = pd.read_csv(segments_path,sep='\t')
     segs = segs[segs['organism']=='HomoSapiens']
     segs_ids = list(segs['id'].drop_duplicates())
-    df_clones = df_clones[df_clones['v'].isin(segs_ids)]
-    df_clones = df_clones[df_clones['j'].isin(segs_ids)]
+    df_clones = df_clones[(df_clones[v].isin(segs_ids))|(df_clones[v].isna())]
+    df_clones = df_clones[(df_clones[j].isin(segs_ids))|(df_clones[v].isna())]
     df_clones = df_clones.reset_index(drop=True)
     return df_clones
 

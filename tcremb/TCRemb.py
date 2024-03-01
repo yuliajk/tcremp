@@ -386,7 +386,7 @@ class TCRemb_clustering():
             
         if model=='dbscan':
             model_name = model
-            model = DBSCAN(eps=3, min_samples=2)        
+            model = DBSCAN(eps=750, min_samples=2)        
         
         clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data , data.clonotype_id)
         self.clstr_labels[chain] = clstr_labels.merge(annot_clones).drop(data.clonotype_id, axis=1)

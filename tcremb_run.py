@@ -15,6 +15,7 @@ import pandas as pd
 #sys.path.append("mirpy/")
 #sys.path.append("../")
 import tcremb.TCRemb as TCRemb
+#import tcremb.TCRemb_upd as TCRemb
 import tcremb.ml_utils as ml_utils
 import tcremb.data_proc as data_proc
 
@@ -98,11 +99,12 @@ def main():
     
     if not args.skip_scores:
         print(f'calculating dist scores for {args.chain} chain {args.input}')
-        if args.chain == 'TRA_TRB':
-            tcremb.tcremb_dists_count('TRA')
-            tcremb.tcremb_dists_count('TRB')
-        else:
-            tcremb.tcremb_dists_count(args.chain)
+        #if args.chain == 'TRA_TRB':
+        #    tcremb.tcremb_dists_count('TRA')
+        #    tcremb.tcremb_dists_count('TRB')
+        #else:
+        #    tcremb.tcremb_dists_count(args.chain)
+        tcremb.tcremb_dists_count(args.chain)
     else:
         print('skip_scores was passed as parameter. continue withot scores calculation')
 
