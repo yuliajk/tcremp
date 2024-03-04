@@ -35,7 +35,7 @@ class TCRemb:
     annotation_id = 'annotId'
     random_state = 7
     
-    def __init__(self,run_name, input_data, data_id = None):
+    def __init__(self,run_name, input_data, data_id = None, prototypes_path = { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}):
         self.clonotypes={}
         #self.clonotype_label_pairs = {}
         self.annot={}
@@ -56,8 +56,9 @@ class TCRemb:
         self.input_id= 'inputId'
         self.annotation_id = 'annotId'
         self.clonotype_id_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
-        #self.__prototypes_path = { 'TRA' :'mirpy/notebooks/assets/olga_humanTRA_3000.txt', 'TRB' : 'mirpy/notebooks/assets/olga_humanTRB_3000.txt'}
-        self.__prototypes_path = { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}
+        #self.__prototypes_path = { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}
+        self.__prototypes_path = prototypes_path
+        print(self.__prototypes_path)
         
         self.__n_components = 50
         self.__tsne_init = 'pca'
@@ -394,7 +395,7 @@ class TCRemb_clustering():
         if label_cl is not None:
             self.binom_res[chain] = ml_utils.binominal_test(pd.merge(self.clstr_labels[chain],data.annot[chain]), 'cluster', label_cl, self.threshold)
             
-            if model_name=='dbscan':
+            if -1 in list(self.clstr_labels[chain]['cluster']):
                 self.binom_res[chain]['is_cluster'] = self.binom_res[chain].apply(lambda x: x.is_cluster if x.cluster != -1 else 0,axis=1)
         
             #self.binom_res[chain]['is_cluster']= self.binom_res[chain]['total_cluster'].apply(lambda x: 1 if x>1 else 0)

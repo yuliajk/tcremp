@@ -131,18 +131,12 @@ def get_clustermetrics(data_df, label):
 
     counts = {k:v for k,v in df[label].value_counts().reset_index().values.tolist()}
     maincluster = {ep: df[df[label]==ep]['cluster'].value_counts().index[0] for ep in df[label].unique()} # Find the largest cluster per epitope
-    #mosfreq = stats['most_frequent']    # Find the most frequent epitope per cluster
-    #clusts = {ep: '-1' if ep not in list(mosfreq.values()) else [c for c in mosfreq.keys() if mosfreq[c]==ep] for ep in counts.keys()} # Map epitopes to the clusters in which they are most frequent
-    #puritymap = {ep: 0 if clusts[ep]=='-1' else np.mean([len(sub[(sub['cluster']==c)&(sub['epitope']==ep)])/len(sub[sub['cluster']==c]) for c in clusts[ep]]) for ep in clusts.keys()} # Get purity per epitope
-    #retmap = {ep: len(df[(df['epitope']==ep)&(~df['cluster'].isnull())])/len(df[df['epitope']==ep]) for ep in counts.keys()} # Get retention scores per epitope
+
     consistencymap = {ep: len(df[(df[label]==ep)&(df['cluster']==maincluster[ep])])/counts[ep] for ep in counts.keys()}  # Get consistency scores per epitope
-    #epmetrics['consistency']=consistencymap
-    #epmetrics['retention']=retmap
-    #epmetrics['purity']=puritymap
     
     return {'purity':purity,
         #'purity': np.mean(list(binom_res[binom_res['is_cluster']==1]['fraction_matched'])),           # Purity of all clusters weighted equally (frequency)
-            #'purity_enriched': np.mean(list(stats['purity_enriched'].values())),  # Purity of clusters (enrichment)
+
             'retention': len(data_df[data_df['is_cluster']==1])/len(data_df), # Proportion of clustered TCRs
             'consistency': np.mean([(consistencymap[ep]*counts[ep])/len(df) for ep in consistencymap.keys()]), # Proportion of an epitope assigned to a given cluster
             'ami':ami,  # Adjusted mutual information
@@ -151,7 +145,5 @@ def get_clustermetrics(data_df, label):
             'recall':recall,    # Recall over all epitopes
             'f1-score':f1score, # F1 over all epitopes
             'support':support,  # Support
-            #'epscores': epmetrics,
             'mean_clustsize': np.mean(list(binom_res[binom_res['is_cluster']==1]['total_cluster'])), # Average cluster size
-            #'small_clusters': stats['Nd'],    # Number of clusters with ≤ 10 members
             } 
