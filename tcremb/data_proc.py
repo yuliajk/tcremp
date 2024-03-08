@@ -20,6 +20,7 @@ def remove_backslash(data, tcr_columns):
     df[tcr_columns[2]] = df[tcr_columns[2]].str.replace('/','')
     return df
 
+
 def filter_clones_data(df_clones, tcr_columns):
     #print(df_clones.shape)
     df_clones = df_clones[-df_clones[tcr_columns[0]].isna()]
@@ -39,6 +40,8 @@ def filter_clones_data(df_clones, tcr_columns):
     df_clones = df_clones.reset_index(drop=True)
     #print(df_clones.shape)
     return df_clones
+
+
 
 def filter_segments(df_clones,segments_path='mir/resources/segments.txt', v = 'v', j='j'):
     segs = pd.read_csv(segments_path,sep='\t')
@@ -76,7 +79,13 @@ def filter_save_freq_subsets(data, chain, label,samples_n, freq_col_list, datase
         col = f'{label}_freq_{i}'
         df = data[data[col]!='other'].drop(freq_col_list,axis=1)
         df.to_csv(v_output_path, sep='\t',index=False)
-    
+
+def filter_save_freq_subsets_paired(data, label,samples_n, freq_col_list, dataset_outputs_suf):
+    for i in samples_n:
+        v_output_path = f'{dataset_outputs_suf}_V{i}.csv'
+        col = f'{label}_freq_{i}'
+        df = data[data[col]!='other'].drop(freq_col_list,axis=1)
+        df.to_csv(v_output_path, sep='\t',index=False)   
 
 ## 10x proc
 def read_barcodes(barcodes_file):

@@ -110,11 +110,12 @@ def main():
 
     if args.mode!='scores':
         print(f'calculating pca of dists scores for {args.chain} chain {args.input}')
-        if args.chain == 'TRA_TRB':
-            tcremb.tcremb_dists('TRA')
-            tcremb.tcremb_dists('TRB')
-        else:
-            tcremb.tcremb_dists(args.chain)
+        #if args.chain == 'TRA_TRB':
+        #    tcremb.tcremb_dists('TRA')
+        #    tcremb.tcremb_dists('TRB')
+        #else:
+        #    tcremb.tcremb_dists(args.chain)
+        tcremb.tcremb_dists(args.chain)
         
         tcremb.tcremb_pca(args.chain)
         tcremb.tcremb_tsne(args.chain)
