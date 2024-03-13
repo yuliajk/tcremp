@@ -114,12 +114,11 @@ def get_clustermetrics(data_df, label):
 
     binom_res = data_df[['cluster','label_cluster','total_cluster','count_matched','fraction_matched','p_value','fraction_matched_exp','is_cluster']].drop_duplicates()
     
-    # Find clustered TCRs
+    # only TCRs in clusters
     df = data_df[data_df['is_cluster']==1]
 
-    # Compute overall purity metrics
+    # Overall purity metrics
     purity = ml_utils.count_clstr_purity(binom_res)
-    #stats = get_purity(df)
 
     # Compute predictive metrics
     ypred = df['label_cluster']
@@ -137,13 +136,13 @@ def get_clustermetrics(data_df, label):
     return {'purity':purity,
         #'purity': np.mean(list(binom_res[binom_res['is_cluster']==1]['fraction_matched'])),           # Purity of all clusters weighted equally (frequency)
 
-            'retention': len(data_df[data_df['is_cluster']==1])/len(data_df), # Proportion of clustered TCRs
-            'consistency': np.mean([(consistencymap[ep]*counts[ep])/len(df) for ep in consistencymap.keys()]), # Proportion of an epitope assigned to a given cluster
-            'ami':ami,  # Adjusted mutual information
-            'accuracy':accuracy,    # Balanced accuracy
-            'precision':precision,  # Precision over all epitopes
-            'recall':recall,    # Recall over all epitopes
-            'f1-score':f1score, # F1 over all epitopes
-            'support':support,  # Support
-            'mean_clustsize': np.mean(list(binom_res[binom_res['is_cluster']==1]['total_cluster'])), # Average cluster size
+            'retention': round(len(data_df[data_df['is_cluster']==1])/len(data_df),4), # Proportion of clustered TCRs
+            'consistency': round(np.mean([(consistencymap[ep]*counts[ep])/len(df) for ep in consistencymap.keys()]),4), # Proportion of an epitope assigned to a given cluster
+            'ami':round(ami,4),  # Adjusted mutual information
+            #'accuracy':accuracy,    # Balanced accuracy
+            'precision':round(precision,4),  # Precision over all epitopes
+            'recall': round(recall,4),    # Recall over all epitopes
+            'f1-score': round(f1score,4), # F1 over all epitopes
+            #'support':support,  # Support
+            'mean_clustsize': round(np.mean(list(binom_res[binom_res['is_cluster']==1]['total_cluster'])),4), # Average cluster size
             } 

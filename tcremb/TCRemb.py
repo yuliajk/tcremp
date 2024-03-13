@@ -412,18 +412,18 @@ class TCRemb_clustering():
         #self.n_clusters = {}
         self.silhouette_n_clusters = {}
     
-    def clstr(self, chain, data, label_cl=None, model='kmeans'):
+    def clstr(self, chain, data, label_cl=None, model='dbscan'):
         
         annot_clones = data.annot[chain][[data.clonotype_id, data.annotation_id]]
         X_data = data.pca_clones[chain].copy()
         
-        check_between = False
+        #check_between = False
         model_name = None
         if (model == 'kmeans'):
             self.silhouette_clusters(X_data.drop(data.clonotype_id,axis=1), chain)
             model_name = model
             model =  KMeans(n_clusters=self.silhouette_n_clusters[chain], random_state=7)
-            check_between = True
+            #check_between = True
             
         if model=='dbscan':
             model_name = model
@@ -447,8 +447,8 @@ class TCRemb_clustering():
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res[chain].rename({label_cl:'label_cluster'},axis=1)
                                             , on='cluster',how='left').sort_values(self.annotation_id).reset_index(drop=True)
             
-            if check_between:
-                self.__is_cluster_by_between_metric(data, chain)
+            #if check_between:
+                #self.__is_cluster_by_between_metric(data, chain)
             
             self.purity = ml_utils.count_clstr_purity(self.binom_res[chain])
             #self.mean_fraction_matched = statistics.mean(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
@@ -524,7 +524,7 @@ class TCRemb_clustering():
         self.clstr_labels[chain]['is_cluster_between'] = self.clstr_labels[chain]['cluster'].apply(lambda x: 1 if x in pred_enriched_between_cls else 0)
 
         
-    def __plot_logo(self, clstr_data, chain, c, list_ax):
+    def __plot_logo(self, clstr_data, chain, c, list_ax, tcr_columns_paired):
         
         cluster_df = clstr_data[clstr_data['cluster']==c]
         lengs = cluster_df['cdr3aa_len'].drop_duplicates()
@@ -533,92 +533,102 @@ class TCRemb_clustering():
         total_cl = cluster_df['total_cluster'].drop_duplicates().reset_index(drop=True)[0]
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
-            seqs = cluster_df[cluster_df['cdr3aa_len']==l]['cdr3aa'].reset_index(drop=True)
+            seqs = cluster_df[cluster_df['cdr3aa_len']==l][tcr_columns_paired[chain][0]].reset_index(drop=True)
             if len(seqs) > 4:
                 motif_logo.plot_amino_logo(seqs, 'title',ax = list_ax[0])
                 list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3aa: {len(seqs)}")
         plot_v_j = clstr_data[clstr_data['cluster']==c]
 
         
-        plot_v_j = pd.DataFrame(plot_v_j.groupby('v')['cdr3aa'].count().reset_index())
-        list_ax[1].pie(plot_v_j['cdr3aa'],labels=plot_v_j['v'])
+        plot_v_j = pd.DataFrame(plot_v_j.groupby(tcr_columns_paired[chain][1])[tcr_columns_paired[chain][0]].count().reset_index())
+        list_ax[1].pie(plot_v_j[tcr_columns_paired[chain][0]],labels=plot_v_j[tcr_columns_paired[chain][1]])
 
 
         plot_v_j = clstr_data[clstr_data['cluster']==c]
-        plot_v_j = pd.DataFrame(plot_v_j.groupby('j')['cdr3aa'].count().reset_index())
-        list_ax[2].pie(plot_v_j['cdr3aa'],labels=plot_v_j['j'])       
+        plot_v_j = pd.DataFrame(plot_v_j.groupby(tcr_columns_paired[chain][2])[tcr_columns_paired[chain][0]].count().reset_index())
+        list_ax[2].pie(plot_v_j[tcr_columns_paired[chain][0]],labels=plot_v_j[tcr_columns_paired[chain][2]])       
     
     def __plot_logo_paired(self, clstr_data,chain, c, list_ax):
     
         cluster_df = clstr_data[clstr_data['cluster']==c]
-        fr_matched = cluster_df['fraction_matched'].drop_duplicates()['fraction_matched'].reset_index(drop=True)[0]
+        fr_matched = cluster_df['fraction_matched'].drop_duplicates().reset_index(drop=True)[0]
         epi = cluster_df['label_cluster'].drop_duplicates().reset_index(drop=True)[0]
         total_cl = cluster_df['total_cluster'].drop_duplicates().reset_index(drop=True)[0]
         lengs = cluster_df['a_cdr3aa_len'].drop_duplicates()
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
-            seqs = cluster_df[cluster_df['a_cdr3aa_len']==l]['a_cdr3aa']
+            seqs = cluster_df[cluster_df['a_cdr3aa_len']==l]['a_cdr3aa'].reset_index(drop=True)
             if len(seqs) > 4:
-                freq = np.zeros((len(alphabet), l))
-                for pos in range(l):
-                    for s in seqs:
-                        freq[alphabet.index(s[pos]), pos] +=1
-                freq_res = freq/freq.sum(axis=0, keepdims=True)
-                motif = pd.DataFrame(freq_res,index=alphabet)
-                motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[0])
+                #freq = np.zeros((len(alphabet), l))
+                #for pos in range(l):
+                #    for s in seqs:
+                #        freq[alphabet.index(s[pos]), pos] +=1
+                #freq_res = freq/freq.sum(axis=0, keepdims=True)
+                #motif = pd.DataFrame(freq_res,index=alphabet)
+                #motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[0])
+                motif_logo.plot_amino_logo(seqs, 'title',ax = list_ax[0])
                 list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3aa: {len(seqs)}")
     
         cluster_df = clstr_data[clstr_data['cluster']==c]
         lengs = cluster_df['b_cdr3aa_len'].drop_duplicates()
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
-            seqs = cluster_df[cluster_df['b_cdr3aa_len']==l]['b_cdr3aa']
+            seqs = cluster_df[cluster_df['b_cdr3aa_len']==l]['b_cdr3aa'].reset_index(drop=True)
             if len(seqs) > 4:
-                freq = np.zeros((len(alphabet), l))
-                #print("cdr3aa length: {} \nCount of cdr3aa: {}".format(l,len(seqs)))
-                for pos in range(l):
-                    for s in seqs:
-                        freq[alphabet.index(s[pos]), pos] +=1
-                freq_res = freq/freq.sum(axis=0, keepdims=True)
-                motif = pd.DataFrame(freq_res,index=alphabet)
-                motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[1])
+                #freq = np.zeros((len(alphabet), l))
+                #for pos in range(l):
+                #    for s in seqs:
+                #        freq[alphabet.index(s[pos]), pos] +=1
+                #freq_res = freq/freq.sum(axis=0, keepdims=True)
+                #motif = pd.DataFrame(freq_res,index=alphabet)
+                #motif_logo.plot_amino_logo(motif, 'title',ax = list_ax[1])
+                motif_logo.plot_amino_logo(seqs, 'title',ax = list_ax[1])
                 list_ax[1].set_title(f"TRB. cdr3aa length: {l}")
     
+        
         plot_v_j = clstr_data[clstr_data['cluster']==c]
-        plot_v_j['count']=plot_v_j.groupby('TRAV').transform('size')
-        plot_v_j = plot_v_j.sort_values('TRAV')
-        sns.histplot(plot_v_j[['count','TRAV']],y='TRAV',ax=list_ax[2])
-        #list_ax[2].set_title('V genes count in cluster, cluster ' + str(c))
+        plot_v_j = pd.DataFrame(plot_v_j.groupby('TRAV')['a_cdr3aa'].count().reset_index())
+        list_ax[2].pie(plot_v_j['a_cdr3aa'],labels=plot_v_j['TRAV'])
+        #plot_v_j['count']=plot_v_j.groupby('TRAV').transform('size')
+        #plot_v_j = plot_v_j.sort_values('TRAV')
+        #sns.histplot(plot_v_j[['count','TRAV']],y='TRAV',ax=list_ax[2])
 
         plot_v_j = clstr_data[clstr_data['cluster']==c]
-        plot_v_j['count']=plot_v_j.groupby('TRAJ').transform('size')
-        plot_v_j = plot_v_j.sort_values('TRAJ')
-        sns.histplot(plot_v_j[['count','TRAJ']],y='TRAJ',ax=list_ax[3])
-        #list_ax[3].set_title('J genes count in cluster, cluster ' + str(c))
+        plot_v_j = pd.DataFrame(plot_v_j.groupby('TRAJ')['a_cdr3aa'].count().reset_index())
+        list_ax[3].pie(plot_v_j['a_cdr3aa'],labels=plot_v_j['TRAJ'])
+        #plot_v_j['count']=plot_v_j.groupby('TRAJ').transform('size')
+        #plot_v_j = plot_v_j.sort_values('TRAJ')
+        #sns.histplot(plot_v_j[['count','TRAJ']],y='TRAJ',ax=list_ax[3])
 
         plot_v_j = clstr_data[clstr_data['cluster']==c]
-        plot_v_j['count']=plot_v_j.groupby('TRBV').transform('size')
-        plot_v_j = plot_v_j.sort_values('TRBV')
-        sns.histplot(plot_v_j[['count','TRBV']],y='TRBV',ax=list_ax[4])
+        plot_v_j = pd.DataFrame(plot_v_j.groupby('TRBV')['b_cdr3aa'].count().reset_index())
+        list_ax[4].pie(plot_v_j['b_cdr3aa'],labels=plot_v_j['TRBV'])
+        #plot_v_j['count']=plot_v_j.groupby('TRBV').transform('size')
+        #plot_v_j = plot_v_j.sort_values('TRBV')
+        #sns.histplot(plot_v_j[['count','TRBV']],y='TRBV',ax=list_ax[4])
 
         plot_v_j = clstr_data[clstr_data['cluster']==c]
-        plot_v_j['count']=plot_v_j.groupby('TRBJ').transform('size')
-        plot_v_j = plot_v_j.sort_values('TRBJ')
-        sns.histplot(plot_v_j[['count','TRBJ']],y='TRBJ',ax=list_ax[5])
+        plot_v_j = pd.DataFrame(plot_v_j.groupby('TRBJ')['b_cdr3aa'].count().reset_index())
+        list_ax[5].pie(plot_v_j['b_cdr3aa'],labels=plot_v_j['TRBJ'])
+        #plot_v_j['count']=plot_v_j.groupby('TRBJ').transform('size')
+        #plot_v_j = plot_v_j.sort_values('TRBJ')
+        #sns.histplot(plot_v_j[['count','TRBJ']],y='TRBJ',ax=list_ax[5])
         
         
     def clstrs_motif(self, data, chain, n_head_clstrs, sfig=None):
         if (chain=='TRA') or (chain=='TRB'):
-            plt_clusters = list(self.binom_res[chain].sort_values('p_value').head(n_head_clstrs)['cluster'])
+            br = self.binom_res[chain][self.binom_res[chain]['cluster']!=-1]
+            plt_clusters = list(br.sort_values('p_value').head(n_head_clstrs)['cluster'])
             clstr_data = pd.merge(self.clstr_labels[chain],data.annot[chain])
+            clstr_data = clstr_data[clstr_data['cluster']!=-1]
         
-            clstr_data['cdr3aa_len'] = clstr_data['cdr3aa'].apply(len)
+            clstr_data['cdr3aa_len'] = clstr_data[data.tcr_columns_paired[chain][0]].apply(len)
         
             n_rows = math.ceil(len(plt_clusters)/4)
             
             if sfig is None:
                 sfig = plt.figure(figsize=(28,6*n_rows))
-                outer_grid = gridspec.GridSpec(n_rows, 4,figure=sfig)        
+                outer_grid = gridspec.GridSpec(n_rows, 4,figure=sfig)
             else:
                 outer_grid = gridspec.GridSpec(n_rows, 4,figure=sfig)
 
@@ -633,10 +643,11 @@ class TCRemb_clustering():
                                 ,sfig.add_subplot(gs[i][4:6, 0])
                                 ,sfig.add_subplot(gs[i][4:6, 1])])
     
-                self.__plot_logo(clstr_data, chain, plt_clusters[i], ax_list[i])
+                self.__plot_logo(clstr_data, chain, plt_clusters[i], ax_list[i],data.tcr_columns_paired)
 
         elif chain=='TRA_TRB':
-            plt_clusters = list(self.binom_res[chain].sort_values('p_value').head(n_head_clstrs)['cluster'])
+            br = self.binom_res[chain][self.binom_res[chain]['cluster']!=-1]
+            plt_clusters = list(br.sort_values('p_value').head(n_head_clstrs)['cluster'])
             clstr_data = pd.merge(self.clstr_labels[chain],data.annot[chain])
     
             clstr_data['a_cdr3aa_len'] = clstr_data['a_cdr3aa'].apply(len)

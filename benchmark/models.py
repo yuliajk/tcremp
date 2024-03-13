@@ -6,14 +6,16 @@ import seaborn as sns
 
 import tcremb.ml_utils as ml_utils
 
+tcr_columns_paired = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ']}
 
 def run_GIANA(data_df, chain, output_suf,cpus=2, label = 'antigen.epitope'):
     '''Run GIANA clustering algorithm
 '''
-    df = data_df[data_df['chain']==chain][['cdr3aa','v',label,'data_id']].reset_index(drop=True)
-    df = df.rename({'cdr3aa':'CDR3','v':'V'},axis=1)
+    df = data_df[~data_df[tcr_columns_paired[chain][0]].isna()][[tcr_columns_paired[chain][0],tcr_columns_paired[chain][1],label,'data_id']].reset_index(drop=True)
+    df = df.rename({tcr_columns_paired[chain][0]:'CDR3',tcr_columns_paired[chain][1]:'V'},axis=1)
     # Reformat input for GIANA
-    seqs = df[['CDR3','V']]
+    #seqs = df[['CDR3','V']]
+    seqs = df[['CDR3','V']].drop_duplicates()
 
     #save data for GIANA
     cdir = os.getcwd()
@@ -50,11 +52,12 @@ def run_GIANA(data_df, chain, output_suf,cpus=2, label = 'antigen.epitope'):
 
 def run_ismart(data_df, chain, output_suf, cpus=2, label = 'antigen.epitope'):
     
-    df = data_df[data_df['chain']==chain][['cdr3aa','v',label,'data_id']].reset_index(drop=True)
-    df = df.rename({'cdr3aa':'CDR3','v':'V'},axis=1)
+    df = data_df[~data_df[tcr_columns_paired[chain][0]].isna()][[tcr_columns_paired[chain][0],tcr_columns_paired[chain][1],label,'data_id']].reset_index(drop=True)
+    df = df.rename({tcr_columns_paired[chain][0]:'CDR3',tcr_columns_paired[chain][1]:'V'},axis=1)
     
     # Reformat input for iSMART
-    seqs = df[['CDR3','V']]
+    #seqs = df[['CDR3','V']]
+    seqs = df[['CDR3','V']].drop_duplicates()
 
     #save data for iSMART
     cdir = os.getcwd()

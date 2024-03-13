@@ -80,9 +80,12 @@ def filter_save_freq_subsets(data, chain, label,samples_n, freq_col_list, datase
         df = data[data[col]!='other'].drop(freq_col_list,axis=1)
         df.to_csv(v_output_path, sep='\t',index=False)
 
-def filter_save_freq_subsets_paired(data, label,samples_n, freq_col_list, dataset_outputs_suf):
+def filter_save_freq_subsets_paired(data, chain,label,samples_n, freq_col_list, dataset_outputs_suf):
     for i in samples_n:
-        v_output_path = f'{dataset_outputs_suf}_V{i}.csv'
+        if chain=='paired':
+            v_output_path = f'{dataset_outputs_suf}_V{i}.csv'
+        else:
+            v_output_path = f'{dataset_outputs_suf}_{chain}_V{i}.csv'
         col = f'{label}_freq_{i}'
         df = data[data[col]!='other'].drop(freq_col_list,axis=1)
         df.to_csv(v_output_path, sep='\t',index=False)   
