@@ -133,16 +133,16 @@ def get_clustermetrics(data_df, label):
 
     consistencymap = {ep: len(df[(df[label]==ep)&(df['cluster']==maincluster[ep])])/counts[ep] for ep in counts.keys()}  # Get consistency scores per epitope
     
-    return {'purity':purity,
+    return {'purity': round(purity,2),
         #'purity': np.mean(list(binom_res[binom_res['is_cluster']==1]['fraction_matched'])),           # Purity of all clusters weighted equally (frequency)
 
-            'retention': round(len(data_df[data_df['is_cluster']==1])/len(data_df),4), # Proportion of clustered TCRs
+            'retention': round(len(data_df[data_df['is_cluster']==1])/len(data_df),2), # Proportion of clustered TCRs
             'consistency': round(np.mean([(consistencymap[ep]*counts[ep])/len(df) for ep in consistencymap.keys()]),4), # Proportion of an epitope assigned to a given cluster
-            'ami':round(ami,4),  # Adjusted mutual information
+            'ami':round(ami,2),  # Adjusted mutual information
             #'accuracy':accuracy,    # Balanced accuracy
-            'precision':round(precision,4),  # Precision over all epitopes
-            'recall': round(recall,4),    # Recall over all epitopes
-            'f1-score': round(f1score,4), # F1 over all epitopes
+            'precision':round(precision,2),  # Precision over all epitopes
+            'recall': round(recall,2),    # Recall over all epitopes
+            'f1-score': round(f1score,2), # F1 over all epitopes
             #'support':support,  # Support
-            'mean_clustsize': round(np.mean(list(binom_res[binom_res['is_cluster']==1]['total_cluster'])),4), # Average cluster size
+            'mean_clustsize': round(np.mean(list(binom_res[binom_res['is_cluster']==1]['total_cluster'])),2), # Average cluster size
             } 

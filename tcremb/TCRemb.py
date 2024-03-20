@@ -252,9 +252,11 @@ class TCRemb:
         else: 
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
 
-    def tcremb_pca(self, chain):
+    def tcremb_pca(self, chain, n_components = None):
+        if n_components is None:
+            n_components = self.__n_components
         if (chain == 'TRA') or (chain == 'TRB'):
-            self.pca_clones[chain] = ml_utils.pca_proc(self.dists[chain], self.clonotype_id, self.__n_components)
+            self.pca_clones[chain] = ml_utils.pca_proc(self.dists[chain], self.clonotype_id, n_components)
             self.pca[chain] = self.pca_clones[chain].merge(self.annot[chain][[self.clonotype_id,self.annotation_id]]).drop(self.clonotype_id, axis=1, errors =
                                                                                                                                'ignore').sort_values(self.annotation_id).reset_index(drop=True)
             self.annot[chain] = self.annot[chain][self.annot[chain][self.clonotype_id].isin(list(self.pca_clones[chain][self.clonotype_id]))].reset_index(drop=True)
