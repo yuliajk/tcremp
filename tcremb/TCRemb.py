@@ -36,6 +36,7 @@ class TCRemb:
     random_state = 7
     
     def __init__(self,run_name, input_data, data_id = None, prototypes_path={ 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}):
+        self.run_name = run_name
         self.clonotypes={}
         #self.clonotype_label_pairs = {}
         self.annot={}

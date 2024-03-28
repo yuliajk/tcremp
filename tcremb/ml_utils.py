@@ -32,17 +32,21 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 from sklearn.model_selection import cross_val_score
 
-colors = ['black','lime','red','blue','orange','darkgreen','pink','cyan','yellow','teal','maroon','indigo','fuchsia','olive','navy','palegreen','crimson','gold','lightsalmon' ]
+#colors = ['lime','red','cyan','orange','darkgreen','pink','blue','yellow','teal','maroon','indigo','fuchsia','olive','navy','palegreen','crimson','gold','lightsalmon','black' ]
 
-def pca_proc(res_df, id_column='id', n_components=100):
+colors = ['red','cyan','lime','darkgreen','gold','pink','lightsalmon','yellow','maroon','blue','teal','orange','olive''indigo','fuchsia','palegreen','crimson','navy','black']
+
+def pca_proc(res_df, id_column='id', n_components=100, plot=False):
     data_proc = res_df.drop(id_column, axis=1, errors = 'ignore')
     pca = PCA(n_components=n_components)
     pca.fit(StandardScaler().fit_transform(data_proc))
-    plt.plot(pca.explained_variance_ratio_, 'bx')
-    plt.xscale('log')
-    plt.ylabel('Explained Variance')
-    plt.xlabel('Components')
-    plt.xlim(.9, pca.n_components_)
+    
+    if plot == True:
+        plt.plot(pca.explained_variance_ratio_, 'bx')
+        plt.xscale('log')
+        plt.ylabel('Explained Variance')
+        plt.xlabel('Components')
+        plt.xlim(.9, pca.n_components_)
     
     pca_data = pd.DataFrame(pca.transform(data_proc))
     
