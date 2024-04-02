@@ -537,7 +537,7 @@ class TCRemb_clustering():
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
             seqs = cluster_df[cluster_df['cdr3aa_len']==l][tcr_columns_paired[chain][0]].reset_index(drop=True)
-            if len(seqs) > 4:
+            if len(seqs) >= 2:
                 motif_logo.plot_amino_logo(seqs, 'title',ax = list_ax[0])
                 list_ax[0].set_title(f"{chain}. Cluster: {c} {epi}\nFraction matched:{round(fr_matched,2)}\nCount of cdr3aa: {len(seqs)}")
         plot_v_j = clstr_data[clstr_data['cluster']==c]
@@ -561,7 +561,7 @@ class TCRemb_clustering():
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
             seqs = cluster_df[cluster_df['a_cdr3aa_len']==l]['a_cdr3aa'].reset_index(drop=True)
-            if len(seqs) > 4:
+            if len(seqs) >= 2:
                 #freq = np.zeros((len(alphabet), l))
                 #for pos in range(l):
                 #    for s in seqs:
@@ -577,7 +577,7 @@ class TCRemb_clustering():
         alphabet = [aa for aa in 'ARNDCQEGHILKMFPSTWYVBZX-']
         for l in lengs:
             seqs = cluster_df[cluster_df['b_cdr3aa_len']==l]['b_cdr3aa'].reset_index(drop=True)
-            if len(seqs) > 4:
+            if len(seqs) >= 2:
                 #freq = np.zeros((len(alphabet), l))
                 #for pos in range(l):
                 #    for s in seqs:
