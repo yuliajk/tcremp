@@ -750,7 +750,7 @@ class TCRemb_clf():
         self.roc_auc_proba_df = {}
         self.roc_auc_proba = {}
     
-    def clf(self, chain, data, label_cl, model=None , test_size = 0.3):
+    def clf(self, chain, data, label_cl, model=None , test_size = 0.3):        
         if model is None:
             model =  RandomForestClassifier(max_depth=self.__max_depth, random_state=7)
         self.model[chain] = model

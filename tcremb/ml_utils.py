@@ -34,7 +34,7 @@ from sklearn.model_selection import cross_val_score
 
 #colors = ['lime','red','cyan','orange','darkgreen','pink','blue','yellow','teal','maroon','indigo','fuchsia','olive','navy','palegreen','crimson','gold','lightsalmon','black' ]
 
-colors = ['red','cyan','lime','darkgreen','gold','pink','lightsalmon','yellow','maroon','blue','teal','orange','olive''indigo','fuchsia','palegreen','crimson','navy','black']
+colors = ['red','cyan','lime','darkgreen','gold','pink','lightsalmon','yellow','maroon','blue','teal','orange','olive','indigo','fuchsia','palegreen','crimson','navy','black']
 
 def pca_proc(res_df, id_column='id', n_components=100, plot=False):
     data_proc = res_df.drop(id_column, axis=1, errors = 'ignore')
@@ -111,7 +111,8 @@ def binominal_test(df, cluster, group, threshold = 0.7):
     binom_df['p_value'] = binom_df.apply(lambda row: stats.binomtest(row['count_matched'], n=row['total_cluster'], p=row['fraction_matched_exp'], alternative='greater').pvalue,axis=1)
     #binom_df = binom_df[binom_df['fraction_matched']>binom_df['fraction_matched_exp']]
     binom_df_cluster = binom_df[[group, cluster,'total_cluster','total_group','count_matched','fraction_matched','fraction_matched_exp','p_value']].drop_duplicates().sort_values('p_value')
-    binom_df_cluster['is_cluster'] = binom_df_cluster['total_cluster'].apply(lambda x: 1 if x>1 else 0)
+    binom_df_cluster['is_cluster'] = binom_df_cluster.apply(lambda x: 1 if (x.total_cluster>1) and (x.cluster!=-1) else 0,axis=1)
+    #binom_df_cluster['is_cluster'] = binom_df_cluster['total_cluster'].apply(lambda x: 1 if x>1 else 0)
     binom_df_cluster['enriched_clstr'] = binom_df_cluster.apply(lambda x:1 
                                                                 if (x.fraction_matched>=threshold)
                                                                 and (x.is_cluster==1) else 0,axis=1)
