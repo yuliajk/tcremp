@@ -817,6 +817,56 @@ class TCRemb_clustering_pred(TCRemb_clustering):
                                                                                                                                               'p_value_train',
                                                                                                                                               'is_cluster_train',
                                                                                                                                               'enriched_clstr_train']]
+                                            , on='cluster',how='left').sort_values(self.annotation_id).reset_index(drop=True)        
+        if chain == 'TRA_TRB':
+            self.clstr_labels[chain] = self.clstr_labels[chain].merge(data.annot[chain][[self.annotation_id, self.data_type] 
+                                                                                   + list(data.tcr_columns_paired['TRA']) 
+                                                                                  + list(data.tcr_columns_paired['TRB'])])
+        else: 
+            self.clstr_labels[chain] = self.clstr_labels[chain].merge(data.annot[chain][[self.annotation_id, self.data_type] + data.tcr_columns_paired[chain]])
+            
+        self.train_purity = ml_utils.count_clstr_purity(self.binom_res_train[chain].rename({'is_cluster_train':'is_cluster'},axis=1))
+        #self.train_mean_fraction_matched = statistics.mean(self.binom_res_train[chain][self.binom_res_train[chain]['is_cluster_train']==1]['fraction_matched'])
+        #self.train_median_fraction_matched = statistics.median(self.binom_res_train[chain][self.binom_res_train[chain]['is_cluster_train']==1]['fraction_matched'])
+        #print(f'train mean fraction_matched only clusters: {self.train_mean_fraction_matched}')
+        #print(f'train median fraction_matched only clusters: {self.train_median_fraction_matched}')
+        print(f'train purity:{self.train_purity}')    
+
+class TCRemb_clustering_pred_2(TCRemb_clustering):
+    def __init__(self, model_name, threshold=0.7):
+        TCRemb_clustering.__init__(self,model_name)
+        self.annotation_id = 'annotId'
+        self.data_type = 'data_type'
+        #self.n_clusters = {}
+        self.binom_res_train = {}
+        self.clstr_metrics_train = {}
+    
+    def clstr_pred(self, chain, data, label_cl, model=None):
+        
+        self.clstr(chain, data, label_cl, model)
+        
+        y_data_train = data.annot[chain][data.annot[chain][self.data_type]=='train'][label_cl]
+                
+        clstrs_labels_data_annot_train = pd.merge(self.clstr_labels[chain], data.annot[chain][data.annot[chain][self.data_type]=='train'])
+        
+        self.binom_res_train[chain] = ml_utils.binominal_test(clstrs_labels_data_annot_train, 'cluster', label_cl, self.threshold)
+        
+        #self.binom_res_train[chain]['is_cluster_train']= self.binom_res_train[chain]['total_cluster'].apply(lambda x: 1 if x>1 else 0)
+        #self.binom_res_train[chain]['enriched_clstr_train'] =self.binom_res_train[chain].apply(lambda x:1 
+        #                                                                     if (x.fraction_matched>=self.threshold)
+        #                                                                     and (x.is_cluster==1) else 0,axis=1)
+        self.clstr_metrics[chain] = ml_utils.clstr_metrics(clstrs_labels_data_annot_train[label_cl], clstrs_labels_data_annot_train['cluster'])
+        
+        self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res_train[chain].rename({label_cl:'label_cluster_train'
+                                                                                                          ,'fraction_matched':'fraction_matched_train'
+                                                                                                          ,'p_value':'p_value_train'
+                                                                                                          ,'is_cluster':'is_cluster_train'
+                                                                                                         ,'enriched_clstr':'enriched_clstr_train'},axis=1)[['cluster',
+                                                                                                                                              'label_cluster_train',
+                                                                                                                                              'fraction_matched_train',
+                                                                                                                                              'p_value_train',
+                                                                                                                                              'is_cluster_train',
+                                                                                                                                              'enriched_clstr_train']]
                                             , on='cluster',how='left').sort_values(self.annotation_id).reset_index(drop=True)
         
         if chain == 'TRA_TRB':
@@ -832,8 +882,8 @@ class TCRemb_clustering_pred(TCRemb_clustering):
         #print(f'train mean fraction_matched only clusters: {self.train_mean_fraction_matched}')
         #print(f'train median fraction_matched only clusters: {self.train_median_fraction_matched}')
         print(f'train purity:{self.train_purity}')    
-
-
+        
+        
 class TCRemb_clf():
     def __init__(self, model_name):
         self.model_name = model_name
@@ -901,68 +951,68 @@ class TCRemb_clf():
         ml_utils.plot_roccurve_multi(classes_list, y_test_curv, self.test_pred_proba[chain],f'ROC curves, {chain}', ax, custom_palette=custom_palette, test_acc=self.clsf_metrics[chain]['test_acc'], f1_weighted=self.clsf_metrics[chain]['f1_weighted'],show_legend=show_legend)
             
 
-class TCRemb_clf_bind(TCRemb_clf):  
-    def __init__(self, model_name):
-        TCRemb_clf.__init__(self,model_name)
-        self.annotation_id = 'annotId'
-        self.class_col = 'bind'
-        self.pn_pairs = {}
-        
-    def __positive_negative_samle(self, chain, data, label_cl):
-        positive_pairs = data.clonotype_label_pairs[chain].copy()
-        n = len(positive_pairs)*2
-        negative_pairs = ml_utils.generate_negative_pairs(positive_pairs, n , data.clonotype_id, label_cl)
-        
-        index_start = max(data.clonotype_label_pairs[chain][data.clonotyoe_label_id]) + 1
-        negative_pairs = negative_pairs.reset_index().rename({'index':data.clonotyoe_label_id},axis=1)
-        
-        positive_pairs[self.class_col] = 1
-        negative_pairs[self.class_col] = 0
-        
-        return pd.concat([positive_pairs, negative_pairs]).reset_index(drop=True)
-        
-    
-    def clf(self, chain, data, label_cl, model=None , labels_list=None, test_size = 0.3):
-        data_tt = self.__positive_negative_samle(chain, data, label_cl)
-        
-        if labels_list is not None:
-            data_tt = data_tt[data_tt[label_cl].isin(labels_list)].reset_index(drop=True)
-        
-        if model is None:
-            model =  RandomForestClassifier(max_depth=self.__max_depth, random_state=7)
-        self.model[chain] = model
-        self.label[chain] = label_cl
-        
-        y_data = data_tt[self.class_col]
-        
-        if (chain=='TRA') or (chain=='TRB'):
-            X_data = pd.merge(data_tt[data.clonotype_id], data.pca_clones[chain], how='left').drop(data.clonotype_id, axis=1, errors = 'ignore')
-        
-        #if chain == 'TRA_TRB':
-        #    X_data = 
-        
-        self.y_data = y_data
-        self.pca_clones_labels = X_data
-        self.pn_pairs[chain] = data_tt
-        
-        self._TCRemb_clf__clf_model(chain, y_data, X_data, test_size)        
-
-        
-    def roc_auc(self, chain, labels_list, ax=None, show_legend=True):
-        test_and_pred = pd.DataFrame(self.y_test[chain])
-        test_and_pred['pred'] = self.test_pred[chain]
-        
-        pred_pairs = pd.concat([self.pn_pairs[chain].drop('bind',axis=1),test_and_pred],axis=1)
-        pred_pairs = pred_pairs[-pred_pairs['pred'].isna()]
-        roc_auc_list = []
-        
-        for l in labels_list:
-            pred_pairs_l = pred_pairs[pred_pairs[label]==l]
-            y_test = pred_pairs_l[clf.class_col]
-            y_test_pred = pred_pairs_l['pred']
-            roc_auc_list.append({'label': l, 'auc': ml_utils.roc_auc_count_binary(y_test, y_test_pred)})
-        
-        self.roc_auc_proba_df[chain] = pd.DataFrame(roc_auc_list)
+#class TCRemb_clf_bind(TCRemb_clf):  
+#    def __init__(self, model_name):
+#        TCRemb_clf.__init__(self,model_name)
+#        self.annotation_id = 'annotId'
+#        self.class_col = 'bind'
+#        self.pn_pairs = {}
+#        
+#    def __positive_negative_samle(self, chain, data, label_cl):
+#        positive_pairs = data.clonotype_label_pairs[chain].copy()
+#        n = len(positive_pairs)*2
+#        negative_pairs = ml_utils.generate_negative_pairs(positive_pairs, n , data.clonotype_id, label_cl)
+#        
+#        index_start = max(data.clonotype_label_pairs[chain][data.clonotyoe_label_id]) + 1
+#        negative_pairs = negative_pairs.reset_index().rename({'index':data.clonotyoe_label_id},axis=1)
+#        
+#        positive_pairs[self.class_col] = 1
+#        negative_pairs[self.class_col] = 0
+#        
+#        return pd.concat([positive_pairs, negative_pairs]).reset_index(drop=True)
+#        
+#    
+#    def clf(self, chain, data, label_cl, model=None , labels_list=None, test_size = 0.3):
+#        data_tt = self.__positive_negative_samle(chain, data, label_cl)
+#        
+#        if labels_list is not None:
+#            data_tt = data_tt[data_tt[label_cl].isin(labels_list)].reset_index(drop=True)
+#        
+#        if model is None:
+#            model =  RandomForestClassifier(max_depth=self.__max_depth, random_state=7)
+#        self.model[chain] = model
+#        self.label[chain] = label_cl
+#        
+#        y_data = data_tt[self.class_col]
+#        
+#        if (chain=='TRA') or (chain=='TRB'):
+#            X_data = pd.merge(data_tt[data.clonotype_id], data.pca_clones[chain], how='left').drop(data.clonotype_id, axis=1, errors = 'ignore')
+#        
+#        #if chain == 'TRA_TRB':
+#        #    X_data = 
+#        
+#        self.y_data = y_data
+#        self.pca_clones_labels = X_data
+#        self.pn_pairs[chain] = data_tt
+#        
+#        self._TCRemb_clf__clf_model(chain, y_data, X_data, test_size)        
+#
+#        
+#    def roc_auc(self, chain, labels_list, ax=None, show_legend=True):
+#        test_and_pred = pd.DataFrame(self.y_test[chain])
+#        test_and_pred['pred'] = self.test_pred[chain]
+#        
+#        pred_pairs = pd.concat([self.pn_pairs[chain].drop('bind',axis=1),test_and_pred],axis=1)
+#        pred_pairs = pred_pairs[-pred_pairs['pred'].isna()]
+#        roc_auc_list = []
+#        
+#        for l in labels_list:
+#            pred_pairs_l = pred_pairs[pred_pairs[label]==l]
+#            y_test = pred_pairs_l[clf.class_col]
+#            y_test_pred = pred_pairs_l['pred']
+#            roc_auc_list.append({'label': l, 'auc': ml_utils.roc_auc_count_binary(y_test, y_test_pred)})
+#        
+#        self.roc_auc_proba_df[chain] = pd.DataFrame(roc_auc_list)
     
     
 
