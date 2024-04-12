@@ -44,6 +44,7 @@ class TCRemb:
         self.pca_clones={}
         self.pca={}
         self.pca_clone_label={}
+        self.pca_ad={'clones':{},'all':{}}
         self.tsne={}
         self.tsne_clones={}
         self.clstr_labels ={}
@@ -269,11 +270,22 @@ class TCRemb:
             
             dists_data = dists_data.drop(self.annotation_id,axis=1).drop_duplicates().reset_index(drop=True)
             chain_1 = 'TRA'
+            self.pca_ad['clones'][chain_1] = ml_utils.pca_proc(self.dists[chain][chain_1], self.clonotype_id, round(n_components)).rename({self.clonotype_id:self.clonotype_id_dict[chain][chain_1]},axis=1)
+            self.pca_ad['all'][chain_1] = self.pca_ad['clones'][chain_1].merge(self.annot[chain][[self.clonotype_id_dict[chain][chain_1],self.annotation_id]]).drop(self.clonotype_id_dict[chain][chain_1], axis=1, errors = 'ignore').sort_values(self.annotation_id).reset_index(drop=True)
+            
+            
             dists_data_a = dists_data.merge(self.dists[chain][chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
             dists_data_a = dists_data_a.drop(list(self.clonotype_id_dict[chain].values()),axis=1)
             chain_1 = 'TRB'
+            self.pca_ad['clones'][chain_1] = ml_utils.pca_proc(self.dists[chain][chain_1], self.clonotype_id, round(n_components)).rename({self.clonotype_id:self.clonotype_id_dict[chain][chain_1]},axis=1)
+            self.pca_ad['all'][chain_1] = self.pca_ad['clones'][chain_1].merge(self.annot[chain][[self.clonotype_id_dict[chain][chain_1],self.annotation_id]]).drop(self.clonotype_id_dict[chain][chain_1], axis=1, errors = 'ignore').sort_values(self.annotation_id).reset_index(drop=True)
+            
             dists_data_b = dists_data.merge(self.dists[chain][chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
             dists_data_b = dists_data_b.drop(list(self.clonotype_id_dict[chain].values()),axis=1)
+            
+            self.pca_ad['clones'][chain] = pd.merge(dists_data.merge(self.pca_ad['clones']['TRA']).drop(list(self.clonotype_id_dict[chain].values()),axis=1)
+                                                    ,dists_data.merge(self.pca_ad['clones']['TRB']).drop(list(self.clonotype_id_dict[chain].values()),axis=1),on = self.clonotype_id)
+            self.pca_ad['all'][chain] = self.pca_ad['clones'][chain].merge(annot_clones).drop(self.clonotype_id,axis=1)
             
             dists_data = dists_data_a.merge(dists_data_b, on = self.clonotype_id)
             
@@ -302,7 +314,7 @@ class TCRemb_vdjdb(TCRemb):
     def __init__(self,run_name, input_data, data_id = None):
         TCRemb.__init__(self,run_name, input_data, data_id)
         self.clonotypes_pred={}
-        self.vdjdb_path = 'data/VDJdb_pred/vdjdb_data_with_cloneId.txt'
+        #self.vdjdb_path = 'data/VDJdb_pred/vdjdb_data_with_cloneId.txt'
         self.vdjdb_path = { 'TRA' : 'data/VDJdb_pred/vdjdb_data_with_cloneId_TRA.txt', 'TRB' : 'data/VDJdb_pred/vdjdb_data_with_cloneId_TRB.txt',
                                'TRA_TRB': 'data/VDJdb_pred/vdjdb_data_with_cloneId_TRA_TRB.txt'}
         self.vdjdb_clonotypes_path = { 'TRA' : 'data/VDJdb_pred/clonotypes_TRA.txt', 'TRB' : 'data/VDJdb_pred/clonotypes_TRB.txt',
@@ -363,6 +375,7 @@ class TCRemb_vdjdb(TCRemb):
         
         df = self.input_data.copy()
         self.vdjdb[chain] = pd.read_csv(self.vdjdb_path[chain],sep='\t')
+        #self.vdjdb[chain] = self.vdjdb[chain][self.vdjdb[chain]['antigen.epitope_freq']!='other']
         if (chain=='TRA') or (chain=='TRB'):
             df = df[~df[self.tcr_columns_paired[chain][0]].isna()].reset_index(drop=True)
             df = self.__assign_clone_ids_with_vdjdb(df, chain)
@@ -838,13 +851,16 @@ class TCRemb_clf():
         self.roc_auc_proba_df = {}
         self.roc_auc_proba = {}
     
-    def clf(self, chain, data, label_cl, model=None , test_size = 0.3):        
+    def clf(self, chain, data, label_cl, model=None , test_size = 0.3, pca_sep_chains=False):        
         if model is None:
             model =  RandomForestClassifier(max_depth=self.__max_depth, random_state=7)
         self.model[chain] = model
         self.label[chain] = label_cl
         y_data = data.annot[chain][label_cl]
-        X_data = data.pca[chain].drop(self.annotation_id, axis=1, errors = 'ignore')
+        if pca_sep_chains:
+            X_data = data.pca_ad['all'][chain].drop(self.annotation_id, axis=1, errors = 'ignore')
+        else:
+            X_data = data.pca[chain].drop(self.annotation_id, axis=1, errors = 'ignore')
         self.__clf_model(chain, y_data, X_data, test_size)
         
     def __clf_model(self, chain, y_data, X_data, test_size):
@@ -961,17 +977,30 @@ class TCRemb_clf_pred(TCRemb_clf):
         self.clsf_metrics_pred = {}
         self.roc_auc_proba_pred_df = {}
         
-    def clf(self, chain, data, label_cl, model = None, test_size = 0.3):
+    def clf(self, chain, data, label_cl, model = None, test_size = 0.3, pca_sep_chains=False):
+        self.pca_sep_chains=pca_sep_chains
         if model is None:
             model =  RandomForestClassifier(max_depth=self._TCRemb_clf__max_depth, random_state=7)
         self.model[chain] = model
+            
         y_data = data.annot[chain][data.annot[chain]['data_type']=='train'][label_cl]
-        X_data = data.pca[chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
+        if self.pca_sep_chains:
+            X_data = data.pca_ad['all'][chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
+        else:
+            X_data = data.pca[chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
+                
         X_data = X_data[X_data['data_type']=='train'].drop([self.annotation_id, 'data_type'], axis=1, errors = 'ignore')
         self._TCRemb_clf__clf_model(chain, y_data, X_data, test_size)
         
     def clf_pred(self, chain, data, label_cl = None):
-        X_pred = data.pca[chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
+        
+        if self.pca_sep_chains:
+            X_pred = data.pca_ad['all'][chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
+        else:
+            X_pred = data.pca[chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
+        
+        #X_pred = data.pca[chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
+        
         self.X_pred[chain] = X_pred[X_pred['data_type']=='pred'].drop([self.annotation_id, 'data_type'], axis=1, errors = 'ignore') 
         self.pred[chain] = self.model[chain].predict(self.X_pred[chain])
         self.pred_proba[chain] = self.model[chain].predict_proba(self.X_pred[chain])
