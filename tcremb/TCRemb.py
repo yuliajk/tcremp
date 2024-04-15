@@ -133,12 +133,14 @@ class TCRemb:
         return clonotypes
 
     
-    def tcremb_clonotypes(self,chain):
+    def tcremb_clonotypes(self,chain, unique_clonotypes=False):
         #data_tt = self.__filter_segments(chain, self.input_data)
         data_tt = self.input_data.copy()
         if (chain=='TRA') or (chain=='TRB'):
             data_tt = data_tt[~data_tt[self.tcr_columns_paired[chain][0]].isna()].reset_index(drop=True)
             data_tt = self.__assign_clones_ids(data_tt, chain)
+            if unique_clonotypes:
+                data_tt = data_tt.drop_duplicates(self.clonotype_id).reset_index(drop=True)
             data_tt['clone_size'] = data_tt.groupby(self.clonotype_id)[self.input_id].transform('count')
             data_chain_1 = data_tt.rename(self.__rename_tcr_columns_paired[chain],axis=1)
             data_chain_1['chain']=chain
@@ -175,6 +177,8 @@ class TCRemb:
             #self.annot[chain_1] = self.__annot_id(data_chain_1.reset_index(drop=True), self.annotation_id)
             
             data_tt = self.__assign_clones_ids_paired(data_tt, chain)
+            if unique_clonotypes:
+                data_tt = data_tt.drop_duplicates(self.clonotype_id).reset_index(drop=True)
             data_tt['clone_size'] = data_tt.groupby(self.clonotype_id)[self.input_id].transform('count')
             
             chain_1 = 'TRA'
