@@ -375,7 +375,7 @@ class TCRemb_vdjdb(TCRemb):
         return df
     
     
-    def tcremb_clonotypes(self,chain):
+    def tcremb_clonotypes(self,chain, unique_clonotypes=False):
         
         df = self.input_data.copy()
         self.vdjdb[chain] = pd.read_csv(self.vdjdb_path[chain],sep='\t')
@@ -383,7 +383,8 @@ class TCRemb_vdjdb(TCRemb):
         if (chain=='TRA') or (chain=='TRB'):
             df = df[~df[self.tcr_columns_paired[chain][0]].isna()].reset_index(drop=True)
             df = self.__assign_clone_ids_with_vdjdb(df, chain)
-            
+            if unique_clonotypes:
+                df = df.drop_duplicates(self.clonotype_id).reset_index(drop=True)
             df['clone_size'] = df.groupby(self.clonotype_id)[self.input_id].transform('count')
             
             data_chain_1 = df.rename(self._TCRemb__rename_tcr_columns_paired[chain],axis=1)
@@ -455,6 +456,9 @@ class TCRemb_vdjdb(TCRemb):
             
             
             df = self.__assign_clone_ids_with_vdjdb_paired(df, chain)
+            if unique_clonotypes:
+                df = df.drop_duplicates(self.clonotype_id).reset_index(drop=True)
+            
             vdjdb[self.clonotype_id] = vdjdb[self.vdjdb_clonotype_id]
             
             vdjdb[self.data_type]='train'
