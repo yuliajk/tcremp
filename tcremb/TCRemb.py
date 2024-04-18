@@ -20,6 +20,7 @@ from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import label_binarize
+from sklearn.metrics import silhouette_samples, silhouette_score
 
 import tcremb.data_proc as data_proc
 import tcremb.ml_utils as ml_utils
@@ -522,6 +523,8 @@ class TCRemb_clustering():
         self.model = {}
         #self.n_clusters = {}
         self.silhouette_n_clusters = {}
+        self.silhouette_score = {}
+        self.purity = {}
     
     def clstr(self, chain, data, label_cl=None, model='dbscan'):
         
@@ -561,12 +564,10 @@ class TCRemb_clustering():
             #if check_between:
                 #self.__is_cluster_by_between_metric(data, chain)
             
-            self.purity = ml_utils.count_clstr_purity(self.binom_res[chain])
-            #self.mean_fraction_matched = statistics.mean(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
-            #self.median_fraction_matched = statistics.median(self.binom_res[chain][self.binom_res[chain]['is_cluster']==1]['fraction_matched'])
-            #print(f'mean fraction_matched only clusters: {self.mean_fraction_matched}')
-            #print(f'median fraction_matched only clusters: {self.median_fraction_matched}')
-            print(f'purity:{self.purity}')
+            self.purity[chain] = ml_utils.count_clstr_purity(self.binom_res[chain])
+            #self.silhouette_score[chain] = silhouette_score(X_data, clstr_labels)
+            print(f'purity:{self.purity[chain]}')
+            #print(f'silhouette_score:{self.silhouette_score[chain]}')
         
         if chain == 'TRA_TRB':
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], data.annot[chain][[self.annotation_id] 
