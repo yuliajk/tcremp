@@ -294,6 +294,8 @@ class TCRemb:
             
             dists_data = dists_data_a.merge(dists_data_b, on = self.clonotype_id)
             
+            self.dists[chain]['joined'] = dists_data.copy()
+            
             self.pca_clones[chain] = ml_utils.pca_proc(dists_data, self.clonotype_id, self.__n_components)
             self.pca[chain] = self.pca_clones[chain].merge(annot_clones).drop(self.clonotype_id,axis=1)
             
