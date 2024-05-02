@@ -21,6 +21,8 @@ from sklearn.cluster import DBSCAN
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import silhouette_samples, silhouette_score
+from sklearn.neighbors import NearestNeighbors
+from kneed import KneeLocator
 
 import tcremb.data_proc as data_proc
 import tcremb.ml_utils as ml_utils
@@ -527,6 +529,8 @@ class TCRemb_clustering():
         self.silhouette_n_clusters = {}
         self.silhouette_score = {}
         self.purity = {}
+        self.kneedle = {}
+        self.knee_coef = 0.85
     
     def clstr(self, chain, data, label_cl=None, model='dbscan'):
         
@@ -543,7 +547,8 @@ class TCRemb_clustering():
             
         if model=='dbscan':
             model_name = model
-            model = DBSCAN(eps=750, min_samples=2)        
+            eps = self.eps_by_knn_knee(X_data.drop(data.clonotype_id, axis=1), chain)
+            model = DBSCAN(eps=eps, min_samples=2)        
         
         clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data , data.clonotype_id)
         self.clstr_labels[chain] = clstr_labels.merge(annot_clones).drop(data.clonotype_id, axis=1)
@@ -578,7 +583,80 @@ class TCRemb_clustering():
         else: 
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain],data.annot[chain][[self.annotation_id] + data.tcr_columns_paired[chain]])
         
+
+    def eps_by_knn_knee(self, X_data, chain):
+        neighbors=4
+        nbrs = NearestNeighbors(n_neighbors=neighbors).fit(X_data)
+        distances, indices = nbrs.kneighbors(X_data)
+        distances = np.sort(distances, axis=0)
+        distances = distances[:,1]
         
+        
+        self.kneedle[chain] = KneeLocator(range(1,len(distances)+1),  #x values
+                              distances, # y values
+                              S=1.0, #parameter suggested from paper
+                              #curve="convex", #parameter from figure
+                              curve="concave",
+                              interp_method="polynomial",
+                              #interp_method="polynomial",        
+                              polynomial_degree=15,
+                              online = True,
+                              direction="increasing", ) #parameter from figure
+    
+        return round(distances[kneedle.knee]*self.knee_coef,2)
+    
+    def plot_knee_normalized(self, chain,
+                         title: str = "Normalized Knee Point",
+                         xlabel: str =  None,
+                         ylabel: str = None,
+                        ax=None):
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(7, 7))
+
+        ax.set_title(title)
+        if xlabel:
+            ax.set_xlabel(xlabel)
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        ax.plot(self.kneedle[chain].x_normalized, self.kneedle[chain].y_normalized, "b", label="normalized curve")
+        ax.plot(self.kneedle[chain].x_difference, self.kneedle[chain].y_difference, "r", label="difference curve")
+        ax.set_xticks(
+            np.arange(self.kneedle[chain].x_normalized.min(), self.kneedle[chain].x_normalized.max() + 0.1, 0.1)
+        )
+        ax.set_yticks(
+            np.arange(self.kneedle[chain].y_difference.min(), self.kneedle[chain].y_normalized.max() + 0.1, 0.1)
+        )
+
+        ax.vlines(
+            self.kneedle[chain].norm_knee,
+            ax.get_ylim()[0],
+            ax.get_ylim()[1],
+            linestyles="--",
+            label="knee/elbow",
+        )
+        ax.legend(loc="best")
+        
+    def plot_knee(self, chain,
+                  title: str = "Knee Point",
+                  xlabel: str =  None,
+                  ylabel: str = None,
+                  ax=None):
+    
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(7, 7))
+
+        ax.set_title(title)
+        if xlabel:
+            ax.set_xlabel(xlabel)
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        ax.plot(self.kneedle[chain].x, self.kneedle[chain].y, "b", label="data")
+        ax.vlines(
+            self.kneedle[chain].knee, ax.get_ylim()[0], ax.get_ylim()[1], linestyles="--", label="knee/elbow"
+        )
+        ax.legend(loc="best")
+    
         
     def silhouette_clusters(self, X_data, chain):
         X_data = X_data.drop(self.annotation_id, axis=1, errors = 'ignore')

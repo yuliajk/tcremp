@@ -78,11 +78,19 @@ def main():
     parser.add_argument('--mode', type=str, default='clstr',
                         help='clstr - clusteting, clsf - classification, clstr_clsf - both, clstr_pred - clustering with train and pred datasets, clsf_pred - classification with traning and prediction of pred dataset, clstr_clsf_pred, scores - only scores count')
     
-    parser.add_argument('--clstr_model', type=str, default='kmeans',
+    parser.add_argument('--clstr_model', type=str, default='dbscan',
                         help='name of clustering algorithm, dbscan or kmeans')
     
     parser.add_argument('--skip_scores', type=bool, default=False
                         , help='If score are already calculated pass skip_scores True')
+
+    parser.add_argument('--unique_clonotypes', type=bool, default=False
+                        , help='Left only unique clonotypes in annotation dataset')
+    
+    parser.add_argument('--a_prototypes', type=str
+                        , help='Path to TRA prototypes')
+    parser.add_argument('--b_prototypes', type=str
+                        , help='Path to TRB prototypes')
     
     
     args = parser.parse_args()
@@ -94,8 +102,12 @@ def main():
     
     print(args.mode)
     
-    tcremb = TCRemb.TCRemb(args.runname, data_preped, data_id=args.data_id)
-    tcremb.tcremb_clonotypes(args.chain)
+    if args.a_prototypes or args.b_prototypes:
+        tcremb = TCRemb.TCRemb(args.runname, data_preped, data_id=args.data_id, prototypes_path={'TRA':args.a_prototypes,'TRB':args.b_prototypes})
+    else:
+        tcremb = TCRemb.TCRemb(args.runname, data_preped, data_id=args.data_id)
+    
+    tcremb.tcremb_clonotypes(args.chain, args.unique_clonotypes)
     
     if not args.skip_scores:
         print(f'calculating dist scores for {args.chain} chain {args.input}')
