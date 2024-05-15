@@ -530,9 +530,13 @@ class TCRemb_clustering():
         self.silhouette_score = {}
         self.purity = {}
         self.kneedle = {}
-        self.knee_coef = 0.85
+        self.poly_degree = 10
+        self.coef_dict = {'TRA':0.75, 'TRB': 0.75,'TRA_TRB':0.85}
     
-    def clstr(self, chain, data, label_cl=None, model='dbscan'):
+    def clstr(self, chain, data, label_cl=None, model='dbscan',knee_coef=None):
+        
+        if knee_coef is None:
+            knee_coef = self.coef_dict[chain]
         
         annot_clones = data.annot[chain][[data.clonotype_id, data.annotation_id]]
         X_data = data.pca_clones[chain].copy()
@@ -547,8 +551,10 @@ class TCRemb_clustering():
             
         if model=='dbscan':
             model_name = model
-            eps = self.eps_by_knn_knee(X_data.drop(data.clonotype_id, axis=1), chain)
-            model = DBSCAN(eps=eps, min_samples=2)        
+            self.knee_coef = knee_coef
+            self.eps = {}
+            self.eps_by_knn_knee(X_data.drop(data.clonotype_id, axis=1), chain)
+            model = DBSCAN(eps=self.eps[chain], min_samples=2)        
         
         clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data , data.clonotype_id)
         self.clstr_labels[chain] = clstr_labels.merge(annot_clones).drop(data.clonotype_id, axis=1)
@@ -599,11 +605,11 @@ class TCRemb_clustering():
                               curve="concave",
                               interp_method="polynomial",
                               #interp_method="polynomial",        
-                              polynomial_degree=15,
+                              polynomial_degree=self.poly_degree,
                               online = True,
                               direction="increasing", ) #parameter from figure
     
-        return round(distances[kneedle.knee]*self.knee_coef,2)
+        self.eps[chain] = round(distances[self.kneedle[chain].knee]*self.knee_coef,2)
     
     def plot_knee_normalized(self, chain,
                          title: str = "Normalized Knee Point",
@@ -880,7 +886,7 @@ class TCRemb_clustering_pred(TCRemb_clustering):
         self.binom_res_train = {}
         self.clstr_metrics_train = {}
     
-    def clstr_pred(self, chain, data, label_cl, model=None):
+    def clstr_pred(self, chain, data, label_cl, model='dbscan'):
         
         self.clstr(chain, data, label_cl, model)
         
