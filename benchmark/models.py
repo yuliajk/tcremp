@@ -47,7 +47,7 @@ def run_GIANA(data_df, chain, output_suf,cpus=2, label = 'antigen.epitope'):
     giana_data = giana_data.merge(binom_res)
     giana_data.to_csv(f'benchmark/outputs/giana_res_{chain}_{output_suf}.txt',sep='\t', index=False)
 
-    return giana_data
+    return giana_data, t
 
 
 def run_ismart(data_df, chain, output_suf, cpus=2, label = 'antigen.epitope'):
@@ -89,9 +89,11 @@ def run_ismart(data_df, chain, output_suf, cpus=2, label = 'antigen.epitope'):
     binom_res = ml_utils.binominal_test(ismart_data, 'cluster', label)
     binom_res = binom_res.rename({label:'label_cluster'},axis=1)
     ismart_data = ismart_data.merge(binom_res)
+    ismart_data = df.merge(ismart_data, how = 'left') ##new
+    ismart_data = ismart_data['is_cluster'].fillna(0) ## new
     ismart_data.to_csv(f'benchmark/outputs/ismart_res_{chain}_{output_suf}.txt',sep='\t')
 
-    return ismart_data
+    return ismart_data, t
 
 
 def run_tcremb(data_path, chain, output_suf, skip_scores=False, label = 'antigen.epitope', model='kmeans' ):
@@ -117,4 +119,4 @@ def run_tcremb(data_path, chain, output_suf, skip_scores=False, label = 'antigen
     tcremb_data = pd.read_csv(f'tcremb_outputs/{run_name}/tcremb_clstr_res_{chain}.txt')
     #tcremb_data.to_csv(f'benchmark/outputs/tcremb_res_{chain}_{output_suf}.txt',sep='\t', index=False)
 
-    return tcremb_data
+    return tcremb_data, t
