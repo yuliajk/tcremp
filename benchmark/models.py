@@ -45,6 +45,8 @@ def run_GIANA(data_df, chain, output_suf,cpus=2, label = 'antigen.epitope'):
     binom_res = ml_utils.binominal_test(giana_data, 'cluster', label)
     binom_res = binom_res.rename({label:'label_cluster'},axis=1)
     giana_data = giana_data.merge(binom_res)
+    giana_data = df.merge(giana_data, how = 'left') ##new
+    giana_data['is_cluster'] = giana_data['is_cluster'].fillna(0) ## new
     giana_data.to_csv(f'benchmark/outputs/giana_res_{chain}_{output_suf}.txt',sep='\t', index=False)
 
     return giana_data, t
@@ -90,7 +92,7 @@ def run_ismart(data_df, chain, output_suf, cpus=2, label = 'antigen.epitope'):
     binom_res = binom_res.rename({label:'label_cluster'},axis=1)
     ismart_data = ismart_data.merge(binom_res)
     ismart_data = df.merge(ismart_data, how = 'left') ##new
-    ismart_data = ismart_data['is_cluster'].fillna(0) ## new
+    ismart_data['is_cluster'] = ismart_data['is_cluster'].fillna(0) ## new
     ismart_data.to_csv(f'benchmark/outputs/ismart_res_{chain}_{output_suf}.txt',sep='\t')
 
     return ismart_data, t
