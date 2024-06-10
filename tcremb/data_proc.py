@@ -2,6 +2,27 @@ import numpy as np
 import pandas as pd
 import math
 
+
+
+def write_filtered_out(df,file_dir,header = None):
+    f_path = f'{file_dir}/filtered_out_data.txt'
+    if len(df[df['filtered_out']==True])>0:
+        with open(f_path, "a") as f:
+            if header:
+                f.write(f"\n{header}\n")
+        df[df['filtered_out']==True].reset_index(drop=True).drop('filtered_out',axis=1).to_csv(f_path,sep='\t',index=False, mode='a')
+# ckeck
+def check_columns(data,tcr_columns):
+    if not set(tcr_columns).issubset(data.columns):
+        raise Exception(f'Incorrect columns names or any column is absent. List of required columns is: {tcr_columns}')
+
+def clean_at_least_cdr3a_or_cdr3b(data, cdr3a, cdr3b, file_dir=None):
+    df = data.copy()
+    df['filtered_out'] = df[cdr3a].isna()*df[cdr3b].isna()
+    if file_dir:
+        write_filtered_out(df, file_dir, 'Both a_cdr3aa and b_cdr3aa are None')
+    return df[df['filtered_out']==False].reset_index(drop=True).drop('filtered_out',axis=1)
+
 # Data processing 
 ##work on filter_clones_data
 def annot_id(data, annotation_id_str):
@@ -15,6 +36,12 @@ def remove_asterisk(data, tcr_columns):
     df[tcr_columns[2]] = df[tcr_columns[2]].str.split('*',n=1,expand=True)[0]
     return df
 
+def add_allele(data, tcr_columns):
+    df = data.copy()
+    df[tcr_columns[1]] = df[tcr_columns[1]] + '*01'
+    df[tcr_columns[2]] = df[tcr_columns[2]] + '*01'
+    return df
+
 def remove_backslash(data, tcr_columns):
     df = data.copy()
     df[tcr_columns[1]] = df[tcr_columns[1]].str.replace('/','')
@@ -22,36 +49,30 @@ def remove_backslash(data, tcr_columns):
     return df
 
 
-def filter_clones_data(df_clones, tcr_columns):
+
+def filter_clones_data(df_clones, tcr_columns, file_dir = None):
     #print(df_clones.shape)
-    df_clones = df_clones[-df_clones[tcr_columns[0]].isna()]
-    df_clones = df_clones[-df_clones[tcr_columns[1]].isna()]
-    df_clones = df_clones[-df_clones[tcr_columns[2]].isna()]
-    df_clones = df_clones[-df_clones[tcr_columns[3]].isna()]
-    df_clones = df_clones[-df_clones[tcr_columns[0]].str.contains(',')]
-    df_clones = df_clones[-df_clones[tcr_columns[1]].str.contains(',')]
-    df_clones = df_clones[-df_clones[tcr_columns[2]].str.contains(',')]
-    df_clones = df_clones[-df_clones[tcr_columns[3]].str.contains(',')]
-    df_clones = df_clones[-df_clones[tcr_columns[0]].str.contains('\.')]
-    df_clones = df_clones[-df_clones[tcr_columns[1]].str.contains('\.')]
-    df_clones = df_clones[-df_clones[tcr_columns[2]].str.contains('\.')]
-    df_clones = df_clones[-df_clones[tcr_columns[3]].str.contains('\.')]
-    df_clones = df_clones[-df_clones[tcr_columns[0]].str.contains('\_')]
-    df_clones = df_clones[-df_clones[tcr_columns[0]].str.contains('\*')]
-    df_clones = df_clones.reset_index(drop=True)
-    #print(df_clones.shape)
-    return df_clones
+    df = df_clones.copy()
+    df['filtered_out'] = df[tcr_columns[0]].isna() + df[tcr_columns[0]].str.contains(',') + df[tcr_columns[0]].str.contains('\.') + df[tcr_columns[0]].str.contains('\_') + df[tcr_columns[0]].str.contains('\*') + df[tcr_columns[1]].isna() + df[tcr_columns[1]].str.contains(',') + df[tcr_columns[1]].str.contains('\.') + df[tcr_columns[2]].isna() + df[tcr_columns[2]].str.contains(',') + df[tcr_columns[2]].str.contains('\.')    
+    
+    if file_dir:
+        write_filtered_out(df, file_dir, 'CDR3 or V or J is absent or contains invalid character')
+    
+    return df[df['filtered_out']==False].reset_index(drop=True).drop('filtered_out',axis=1)
 
 
-
-def filter_segments(df_clones,segments_path='mir/resources/segments.txt', v = 'v', j='j'):
+def filter_segments(df_clones,segments_path='mir/resources/segments.txt', v = 'v', j='j', organism='HomoSapiens', file_dir = None):
     segs = pd.read_csv(segments_path,sep='\t')
-    segs = segs[segs['organism']=='HomoSapiens']
+    segs = segs[segs['organism']==organism]
     segs_ids = list(segs['id'].drop_duplicates())
-    df_clones = df_clones[(df_clones[v].isin(segs_ids))|(df_clones[v].isna())]
-    df_clones = df_clones[(df_clones[j].isin(segs_ids))|(df_clones[v].isna())]
-    df_clones = df_clones.reset_index(drop=True)
-    return df_clones
+    df = df_clones.copy()
+    df['filtered_out'] = -df[v].isin(segs_ids) + df[v].isna() + -df[j].isin(segs_ids) + df[v].isna()
+    
+    if file_dir:
+        write_filtered_out(df, file_dir, 'V or J segment is not present in resource segments list for this species:')
+    
+    return df[df['filtered_out']==False].reset_index(drop=True).drop('filtered_out',axis=1)
+
 
 def freq_labels(label, data_id, data_preped, n = 5, tr = 3):
     df = data_preped.copy()
@@ -140,3 +161,4 @@ def pivot_data(data):
     data = data.pivot_table('count','barcode','tetramer')
     data = data.fillna(0)
     return data
+

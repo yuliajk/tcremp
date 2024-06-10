@@ -6,7 +6,10 @@ import math
 import sys
 sys.path.append("../")
 sys.path.append("mirpy/")
-from mir.common import parser, Repertoire, SegmentLibrary
+#from mir.common import parser, Repertoire, SegmentLibrary
+from mir.common.repertoire import Repertoire
+from mir.common.segments import SegmentLibrary
+from mir.common import parser
 from mir.distances import ClonotypeAligner, GermlineAligner
 from mir.comparative import DenseMatcher
 
@@ -14,21 +17,12 @@ from collections import Counter
 import time
 
 import statistics
-from scipy.spatial.distance import pdist, squareform, cdist
+#from scipy.spatial.distance import pdist, squareform, cdist
 from sklearn.model_selection import train_test_split
-from sklearn.cluster import KMeans
-from sklearn.cluster import DBSCAN
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import label_binarize
-from sklearn.metrics import silhouette_samples, silhouette_score
-from sklearn.neighbors import NearestNeighbors
-from kneed import KneeLocator
 
 import tcremb.data_proc as data_proc
 import tcremb.ml_utils as ml_utils
 
-import tcremb.motif_logo as motif_logo
-import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
@@ -82,14 +76,26 @@ class TCRemb:
                               'TRA_TRB':{'TRA' : self.outputs_path + 'res_paired_TRA.txt', 'TRB': self.outputs_path + 'res_paired_TRB.txt'}}
         
         self.data_id = data_id
-        self.input_data = input_data.copy()
+        self.raw_input_data = input_data.copy()
+        #050624self.input_data = input_data.copy()
+        self.check_proc_input_data() #050624
         self.input_data = self.__annot_id(self.input_data, self.input_id)
 
+    def check_proc_input_data(self):
+        data_proc.check_columns(self.raw_input_data, self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'])
+        self.input_data = data_proc.clean_at_least_cdr3a_or_cdr3b(self.raw_input_data, self.tcr_columns_paired['TRA'][0], self.tcr_columns_paired['TRB'][0], self.outputs_path)
+        self.input_data =  data_proc.remove_asterisk(self.input_data, self.tcr_columns_paired['TRA']) 
+        self.input_data =  data_proc.remove_asterisk(self.input_data, self.tcr_columns_paired['TRB'])
+        self.input_data = data_proc.remove_backslash(self.input_data, self.tcr_columns_paired['TRA'])
+        self.input_data = data_proc.remove_backslash(self.input_data, self.tcr_columns_paired['TRB'])
+        self.input_data = data_proc.add_allele(self.input_data,self.tcr_columns_paired['TRA'])
+        self.input_data = data_proc.add_allele(self.input_data,self.tcr_columns_paired['TRB']) 
+        
+    
     def __annot_id(self, data, annotation_id_str):
         df = data.copy()
         df[annotation_id_str]=df.index
         return df
-    
 
     def __assign_clones_ids(self, data, chain):
         df = data.copy()
@@ -103,18 +109,13 @@ class TCRemb:
         if chain=='TRA_TRB':
             df[self.clonotype_id]=df.groupby(self.tcr_columns_paired['TRA']+self.tcr_columns_paired['TRB'],dropna=False).ngroup()
         return df
-    
-#    def __assign_clone_label_pairs_ids(self, chain, label):
-#        if chain=='TRA_TRB':
-#            self.annot_input[chain][self.clonotyoe_label_id] = self.annot_input[chain].groupby([[label] + list(self.clonotype_id_dict[chain].values())],dropna=False).ngroup()
-#            
-#        else:
-#            self.annot_input[chain][self.clonotyoe_label_id] = self.annot_input[chain].groupby([label,self.clonotype_id],dropna=False).ngroup()  
+   
     
     
     #def __clonotypes_prep(self, clones_df,clonotypes_path, chain, tcr_columns, clonotype_id_str):
-    def __clonotypes_prep(self, clones_df, chain, tcr_columns, clonotype_id_str):
+    def __clonotypes_prep_old(self, clones_df, chain, tcr_columns, clonotype_id_str):
         clonotypes = clones_df[clones_df['chain']==chain]
+        clonotypes = clones_df.copy()
         clonotypes = data_proc.remove_asterisk(clonotypes, tcr_columns)
         clonotypes = data_proc.remove_backslash(clonotypes, tcr_columns)
         clonotypes = data_proc.filter_clones_data(clonotypes, tcr_columns)
@@ -124,20 +125,36 @@ class TCRemb:
         #clonotypes.to_csv(clonotypes_path, sep='\t')
         return clonotypes
 
+    def __clonotypes_prep(self, clones_df, chain):
+        clonotypes = clones_df.copy()
+        clonotypes = clonotypes.rename(self.__rename_tcr_columns_paired[chain],axis=1)
+        clonotypes['chain']=chain       
+        clonotypes = clonotypes[self.tcr_columns + [self.clonotype_id]].drop_duplicates().reset_index(drop=True)
+        clonotypes['d']='.' ## 070624
+        return clonotypes
+    
+    def __clonotypes_data_clean(self, data, chain):
+        df = data.copy()
+        df = data_proc.filter_clones_data(df, self.tcr_columns_paired[chain], file_dir=self.outputs_path)
+        df = data_proc.filter_segments(df,v = self.tcr_columns_paired[chain][1], j = self.tcr_columns_paired[chain][2], file_dir=self.outputs_path)
+        return df
     
     def tcremb_clonotypes(self,chain, unique_clonotypes=False):
         #data_tt = self.__filter_segments(chain, self.input_data)
         data_tt = self.input_data.copy()
         if (chain=='TRA') or (chain=='TRB'):
             data_tt = data_tt[~data_tt[self.tcr_columns_paired[chain][0]].isna()].reset_index(drop=True)
+            data_tt = self.__clonotypes_data_clean(data_tt, chain) #050624
+            
             data_tt = self.__assign_clones_ids(data_tt, chain)
             if unique_clonotypes:
                 data_tt = data_tt.drop_duplicates(self.clonotype_id).reset_index(drop=True)
             data_tt['clone_size'] = data_tt.groupby(self.clonotype_id)[self.input_id].transform('count')
-            data_chain_1 = data_tt.rename(self.__rename_tcr_columns_paired[chain],axis=1)
-            data_chain_1['chain']=chain
+            #050624data_chain_1 = data_tt.rename(self.__rename_tcr_columns_paired[chain],axis=1)
+            #050624data_chain_1['chain']=chain
             #self.clonotypes[chain] = self.__clonotypes_prep(data_tt, self.clonotypes_path[chain], chain, self.tcr_columns, self.clonotype_id)
-            self.clonotypes[chain] = self.__clonotypes_prep(data_chain_1,  chain, self.tcr_columns, self.clonotype_id)
+            #050624self.clonotypes[chain] = self.__clonotypes_prep(data_chain_1,  chain, self.tcr_columns, self.clonotype_id)
+            self.clonotypes[chain] = self.__clonotypes_prep(data_tt, chain) #050624
             self.clonotypes[chain].to_csv(self.clonotypes_path[chain], sep='\t')
             
             data_tt = data_tt[data_tt[self.clonotype_id].isin(self.clonotypes[chain][self.clonotype_id])]
@@ -150,21 +167,27 @@ class TCRemb:
             
             chain_1 = 'TRA'
             data_tt = self.__assign_clones_ids_paired(data_tt, chain_1)
-            data_chain_1 = data_tt.copy()
-            data_chain_1 = data_chain_1.rename(self.__rename_tcr_columns_paired[chain_1],axis=1)
-            data_chain_1['chain']=chain_1
+            data_tt = self.__clonotypes_data_clean(data_tt, chain_1) #050624
+            #050624data_chain_1 = data_tt.copy()
+            #050624data_chain_1 = data_chain_1.rename(self.__rename_tcr_columns_paired[chain_1],axis=1)
+            #050624data_chain_1['chain']=chain_1
             #self.clonotypes[chain_1] = self.__clonotypes_prep(data_chain_1, self.clonotypes_path[chain_1], chain_1, self.tcr_columns, self.clonotype_id)
-            self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            #050624self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            
+            self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_tt, chain_1) #050624
             self.clonotypes[chain][chain_1].to_csv(self.clonotypes_path[chain][chain_1], sep='\t')
             #self.annot_input[chain_1] = self.__annot_id(data_chain_1.reset_index(drop=True), self.annotation_id)                  
             
             chain_1 = 'TRB'
             data_tt = self.__assign_clones_ids_paired(data_tt, chain_1)
-            data_chain_1 = data_tt.copy()
-            data_chain_1 = data_chain_1.rename(self.__rename_tcr_columns_paired[chain_1],axis=1)
-            data_chain_1['chain']=chain_1
+            data_tt = self.__clonotypes_data_clean(data_tt, chain_1) #050624
+            #050624data_chain_1 = data_tt.copy()
+            #050624data_chain_1 = data_chain_1.rename(self.__rename_tcr_columns_paired[chain_1],axis=1)
+            #050624data_chain_1['chain']=chain_1
             #self.clonotypes[chain_1] = self.__clonotypes_prep(data_chain_1, self.clonotypes_path[chain_1], chain_1, self.tcr_columns, self.clonotype_id)
-            self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            #050624self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            
+            self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_tt, chain_1) #050624
             self.clonotypes[chain][chain_1].to_csv(self.clonotypes_path[chain][chain_1], sep='\t')
             #self.annot_input[chain_1] = self.__annot_id(data_chain_1.reset_index(drop=True), self.annotation_id)
             
