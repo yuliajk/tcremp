@@ -11,9 +11,6 @@ import pandas as pd
 #import matplotlib as mpl
 #import seaborn as sns
 
-
-#sys.path.append("mirpy/")
-#sys.path.append("../")
 import tcremb.TCRemb as TCRemb
 #import tcremb.TCRemb_upd as TCRemb
 import tcremb.ml_utils as ml_utils
