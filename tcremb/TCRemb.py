@@ -32,7 +32,8 @@ class TCRemb:
     annotation_id = 'annotId'
     random_state = 7
     
-    def __init__(self,run_name, input_data, data_id = None, prototypes_path={ 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}):
+    def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='human', prototypes_chain='TRA_TRB'):
+        self.__prototypes_path_subsets = {'human': { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}}
         self.run_name = run_name
         self.clonotypes={} ## extracted clonotypes
         #self.clonotype_label_pairs = {}
@@ -58,10 +59,15 @@ class TCRemb:
         #self.annotation_id = 'annotId'
         self.annotation_id = 'id'
         self.clonotype_id_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
-        #self.__prototypes_path = { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}
-        self.__prototypes_path = prototypes_path
         
-        self.__n_components = 50
+        self.prototypes_path = self.__prototypes_path_subsets[species]
+        #self.__prototypes_path = prototypes_path
+        
+        if n*2<50:
+            self.__n_components =n*2
+        else:
+            self.__n_components = 50
+        
         self.__tsne_init = 'pca'
         self.__tsne_perplexity = 15
         self.__random_state = 7
@@ -80,6 +86,22 @@ class TCRemb:
         #050624self.input_data = input_data.copy()
         self.check_proc_input_data() #050624
         self.input_data = self.__annot_id(self.input_data, self.input_id)
+        
+        if prototypes_path:
+            self.prototypes_path= { 'TRA' : self.outputs_path + 'prptotypesTRA.txt', 'TRB' : self.outputs_path + 'prptotypesTRB.txt'}
+            self.prototypes_prep(prototypes_path)
+        
+        if n:
+            new_prototypes_path = { 'TRA' : self.outputs_path + f'prptotypesTRA_{n}.txt', 'TRB' : self.outputs_path + f'prptotypesTRB_{n}.txt'}
+            try:
+                if prototypes_chain=='TRA_TRB':
+                    self.prototypes_n(n, self.prototypes_path['TRA'], new_prototypes_path['TRA'])
+                    self.prototypes_n(n, self.prototypes_path['TRB'], new_prototypes_path['TRB'])
+                else:
+                    self.prototypes_n(n, self.prototypes_path[chain], new_prototypes_path[chain])
+            except ValueError:
+                print('n is greater than number of clonotypes in prototypes file')
+            self.prototypes_path= new_prototypes_path
 
     def check_proc_input_data(self):
         data_proc.check_columns(self.raw_input_data, self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'])
@@ -91,6 +113,13 @@ class TCRemb:
         self.input_data = data_proc.add_allele(self.input_data,self.tcr_columns_paired['TRA'])
         self.input_data = data_proc.add_allele(self.input_data,self.tcr_columns_paired['TRB']) 
         
+    
+    def prototypes_prep(self, input_file):
+        pass
+    
+    def prototypes_n(self, n, old_path, new_path):
+        #pd.read_csv(self.prototypes_path['TRA'],sep='\t',header=None).sample_n(n).reset_index(drop=True).to_csv('')
+        pd.read_csv(old_path,sep='\t',index_col=0).sample(n).reset_index(drop=True).to_csv(new_path, sep='\t')
     
     def __annot_id(self, data, annotation_id_str):
         df = data.copy()
@@ -231,16 +260,16 @@ class TCRemb:
 
     def tcremb_dists_count(self, chain, nproc= None, chunk_sz=100):
         if (chain=='TRA') or (chain=='TRB'):
-            lib, db, data_parse = self.__data_parse_mirpy(chain, self.__prototypes_path[chain],self.clonotypes_path[chain])
+            lib, db, data_parse = self.__data_parse_mirpy(chain, self.prototypes_path[chain],self.clonotypes_path[chain])
             res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
             res.to_csv(self.dists_res_path[chain], sep='\t', index = False)
         elif chain=='TRA_TRB':
             chain_1 = 'TRA'
-            lib, db, data_parse = self.__data_parse_mirpy(chain_1, self.__prototypes_path[chain_1],self.clonotypes_path[chain][chain_1])
+            lib, db, data_parse = self.__data_parse_mirpy(chain_1, self.prototypes_path[chain_1],self.clonotypes_path[chain][chain_1])
             res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
             res.to_csv(self.dists_res_path[chain][chain_1], sep='\t', index = False)
             chain_1 = 'TRB'
-            lib, db, data_parse = self.__data_parse_mirpy(chain_1, self.__prototypes_path[chain_1],self.clonotypes_path[chain][chain_1])
+            lib, db, data_parse = self.__data_parse_mirpy(chain_1, self.prototypes_path[chain_1],self.clonotypes_path[chain][chain_1])
             res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
             res.to_csv(self.dists_res_path[chain][chain_1], sep='\t', index = False)
     
