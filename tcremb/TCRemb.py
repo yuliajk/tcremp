@@ -4,17 +4,12 @@ import pandas as pd
 import math
 
 import sys
-sys.path.append("../")
-sys.path.append("mirpy/")
-#from mir.common import parser, Repertoire, SegmentLibrary
-from mir.common.repertoire import Repertoire
-from mir.common.segments import SegmentLibrary
-from mir.common import parser
-from mir.distances import ClonotypeAligner, GermlineAligner
-from mir.comparative import DenseMatcher
+#sys.path.append("../")
 
 from collections import Counter
 import time
+
+from time import gmtime, strftime
 
 import statistics
 #from scipy.spatial.distance import pdist, squareform, cdist
@@ -27,14 +22,24 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
 
+#sys.path.append("../mirpy/")
+sys.path.append("../mirpy/mirpy/")
+#from mir.common import parser, Repertoire, SegmentLibrary
+from mir.common.repertoire import Repertoire
+from mir.common.segments import SegmentLibrary
+from mir.common import parser
+from mir.distances import ClonotypeAligner, GermlineAligner
+from mir.comparative import DenseMatcher
+
 class TCRemb:
     clonotype_id = 'cloneId'
     annotation_id = 'annotId'
     random_state = 7
     
-    def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='human', prototypes_chain='TRA_TRB'):
-        self.__prototypes_path_subsets = {'human': { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}}
+    def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB'):
+        self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}}
         self.run_name = run_name
+        self.species = species
         self.clonotypes={} ## extracted clonotypes
         #self.clonotype_label_pairs = {}
         self.annot_input={} ## raw input
@@ -63,14 +68,12 @@ class TCRemb:
         self.prototypes_path = self.__prototypes_path_subsets[species]
         #self.__prototypes_path = prototypes_path
         
-        if n*2<50:
-            self.__n_components =n*2
-        else:
-            self.__n_components = 50
+        self.__n_components = 50
         
         self.__tsne_init = 'pca'
         self.__tsne_perplexity = 15
         self.__random_state = 7
+        self.time_dict = {}
         
         
         self.outputs_path = "tcremb_outputs/" + run_name + '/'
@@ -98,10 +101,12 @@ class TCRemb:
                     self.prototypes_n(n, self.prototypes_path['TRA'], new_prototypes_path['TRA'])
                     self.prototypes_n(n, self.prototypes_path['TRB'], new_prototypes_path['TRB'])
                 else:
-                    self.prototypes_n(n, self.prototypes_path[chain], new_prototypes_path[chain])
+                    self.prototypes_n(n, self.prototypes_path[prototypes_chain], new_prototypes_path[prototypes_chain])
             except ValueError:
                 print('n is greater than number of clonotypes in prototypes file')
             self.prototypes_path= new_prototypes_path
+            if n*2<50:
+                self.__n_components =n*2
 
     def check_proc_input_data(self):
         data_proc.check_columns(self.raw_input_data, self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'])
@@ -148,7 +153,7 @@ class TCRemb:
         clonotypes = data_proc.remove_asterisk(clonotypes, tcr_columns)
         clonotypes = data_proc.remove_backslash(clonotypes, tcr_columns)
         clonotypes = data_proc.filter_clones_data(clonotypes, tcr_columns)
-        clonotypes = data_proc.filter_segments(clonotypes)
+        clonotypes = data_proc.filter_segments(clonotypes, segments_path='../mirpy/mirpy/mir/resources/segments.txt', organism=self.species)
         
         clonotypes = clonotypes[tcr_columns + [clonotype_id_str]].drop_duplicates().reset_index(drop=True)
         #clonotypes.to_csv(clonotypes_path, sep='\t')
@@ -165,10 +170,16 @@ class TCRemb:
     def __clonotypes_data_clean(self, data, chain):
         df = data.copy()
         df = data_proc.filter_clones_data(df, self.tcr_columns_paired[chain], file_dir=self.outputs_path)
-        df = data_proc.filter_segments(df,v = self.tcr_columns_paired[chain][1], j = self.tcr_columns_paired[chain][2], file_dir=self.outputs_path)
+        #segments_path = mir.__file__.replace('__init__.py','resources/segments.txt')
+        segments_path = '../mirpy/mirpy/mir/resources/segments.txt'
+        df = data_proc.filter_segments(df, segments_path=segments_path, v = self.tcr_columns_paired[chain][1], j = self.tcr_columns_paired[chain][2], organism=self.species, file_dir=self.outputs_path)
         return df
     
     def tcremb_clonotypes(self,chain, unique_clonotypes=False):
+        self.time_dict[chain] = {}
+        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        start = time.time()
+        
         #data_tt = self.__filter_segments(chain, self.input_data)
         data_tt = self.input_data.copy()
         if (chain=='TRA') or (chain=='TRB'):
@@ -234,9 +245,16 @@ class TCRemb:
 
         else:
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
+        
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        end = time.time()
+        self.time_dict[chain]['clonotypes'] = {end - start}
+        print(f'Clonotypes extraction time: {end - start}')
      
    
     def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        start = time.time()
         lib = SegmentLibrary.load_default(genes=chain)
         db = Repertoire.load(parser=parser.OlgaParser(), path=olga_human_path)
     
@@ -245,17 +263,25 @@ class TCRemb:
         data_parse = pars.parse(source=clonotypes_path)
         data_parse = [x for x in data_parse if len(x.cdr3aa) in range(7, 23)]
         print(data_parse[0:10])
+        
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        end = time.time()
+        self.time_dict[chain]['mir_parse'] = {end - start}
+        print(f'parse data for mir: {end - start}')
         return lib, db, data_parse
 
     def __mir_launch(self, chain, lib, db, data_parse, nproc, chunk_sz):
         aligner = ClonotypeAligner.from_library(lib=lib)
         matcher = DenseMatcher(db, aligner)
         
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         res = matcher.match_to_df(data_parse, nproc=nproc)
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         print(np.shape(res))
-        print(end - start)
+        self.time_dict[chain]['mir_launch'] = {end - start}
+        print(f'Mir launch time: {end - start}')
         return res
 
     def tcremb_dists_count(self, chain, nproc= None, chunk_sz=100):
@@ -284,6 +310,8 @@ class TCRemb:
         self.palette = ml_utils.make_custom_palette(labels_list)
     
     def tcremb_dists(self, chain):
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        start = time.time()
         if (chain=='TRA') or (chain=='TRB'):
             self.dists[chain] = self.__mir_results_proc(chain, self.dists_res_path[chain], self.clonotypes_path[chain], self.clonotype_id)
             self.annot[chain] = self.annot_input[chain][self.annot_input[chain][self.clonotype_id].isin(list(self.dists[chain][self.clonotype_id]))].reset_index(drop=True)
@@ -323,8 +351,15 @@ class TCRemb:
             
         else: 
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
+        
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        end = time.time()
+        self.time_dict[chain]['dist_proc'] = {end - start}
+        print(f'dist_proc: {end - start}')
 
     def tcremb_pca(self, chain, n_components = None):
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        start = time.time()
         if n_components is None:
             n_components = self.__n_components
         if (chain == 'TRA') or (chain == 'TRB'):
@@ -366,9 +401,18 @@ class TCRemb:
             
             self.annot[chain] = self.annot[chain][self.annot[chain][self.clonotype_id].isin(list(self.pca_clones[chain][self.clonotype_id]))].reset_index(drop=True)
             
-            
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        end = time.time()
+        self.time_dict[chain]['pca'] = {end - start}
+        print(f'pca: {end - start}')    
             
     def tcremb_tsne(self,chain):
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        start = time.time()
         self.tsne[chain] = ml_utils.tsne_proc(self.pca[chain] , self.annotation_id, self.__tsne_init, self.__random_state, self.__tsne_perplexity)
         self.tsne_clones[chain] = ml_utils.tsne_proc(self.pca_clones[chain] , self.clonotype_id, self.__tsne_init, self.__random_state, self.__tsne_perplexity)
         
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        end = time.time()
+        self.time_dict[chain]['tsne'] = {end - start}
+        print(f'tsne: {end - start}')    

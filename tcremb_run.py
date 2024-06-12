@@ -4,8 +4,7 @@ from pathlib import Path
 #import sys
 import numpy as np
 import pandas as pd
-#from scipy import stats
-#import statistics
+from time import strftime, gmtime
 
 #import matplotlib.pyplot as plt
 #import matplotlib as mpl
@@ -92,7 +91,13 @@ def main():
     
     args = parser.parse_args()
     
-    outputs_path= "tcremb_outputs/" + args.runname + '/'
+    if args.runname:
+        outputs_path= "tcremb_outputs/" + args.runname + '/'
+    else:
+        runname = 'tcremb_' + strftime("%Y_%m_%d_%H_%M_%S", gmtime())
+        outputs_path= "tcremb_outputs/" + runname + '/'
+
+    print(f'results and temp files will be in {outputs_path}')
     
     
     data_preped = pd.read_csv(args.input,sep='\t')

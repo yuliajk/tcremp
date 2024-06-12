@@ -61,7 +61,7 @@ def filter_clones_data(df_clones, tcr_columns, file_dir = None):
     return df[df['filtered_out']==False].reset_index(drop=True).drop('filtered_out',axis=1)
 
 
-def filter_segments(df_clones,segments_path='mir/resources/segments.txt', v = 'v', j='j', organism='HomoSapiens', file_dir = None):
+def filter_segments(df_clones,segments_path='mirpy//mir/resources/segments.txt', v = 'v', j='j', organism='HomoSapiens', file_dir = None):
     segs = pd.read_csv(segments_path,sep='\t')
     segs = segs[segs['organism']==organism]
     segs_ids = list(segs['id'].drop_duplicates())
