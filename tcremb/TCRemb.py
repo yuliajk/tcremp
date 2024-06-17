@@ -62,7 +62,7 @@ class TCRemb:
         self.clonotyoe_label_id = 'pairId'
         self.input_id= 'inputId'
         #self.annotation_id = 'annotId'
-        self.annotation_id = 'id'
+        self.annotation_id = 'id' ## index
         self.clonotype_id_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
         
         self.prototypes_path = self.__prototypes_path_subsets[species]
@@ -107,6 +107,11 @@ class TCRemb:
             self.prototypes_path= new_prototypes_path
             if n*2<50:
                 self.__n_components =n*2
+        else:
+            n=3000
+        
+        self.dist_cols_dist={'TRA':[f'a_{xs}_{x}' for xs in range(n) for x in ['v','j','cdr3']],
+               'TRB':[f'b_{xs}_{x}' for xs in range(n) for x in ['v','j','cdr3']]}
 
     def check_proc_input_data(self):
         data_proc.check_columns(self.raw_input_data, self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'])
@@ -176,7 +181,7 @@ class TCRemb:
         return df
     
     def tcremb_clonotypes(self,chain, unique_clonotypes=False):
-        self.time_dict[chain] = {}
+        #self.time_dict[chain] = {}
         print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         
@@ -248,7 +253,7 @@ class TCRemb:
         
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        self.time_dict[chain]['clonotypes'] = {end - start}
+        #self.time_dict[chain]['clonotypes'] = {end - start}
         print(f'Clonotypes extraction time: {end - start}')
      
    
@@ -266,7 +271,7 @@ class TCRemb:
         
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        self.time_dict[chain]['mir_parse'] = {end - start}
+        #self.time_dict[chain]['mir_parse'] = {end - start}
         print(f'parse data for mir: {end - start}')
         return lib, db, data_parse
 
@@ -280,7 +285,7 @@ class TCRemb:
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         print(np.shape(res))
-        self.time_dict[chain]['mir_launch'] = {end - start}
+        #self.time_dict[chain]['mir_launch'] = {end - start}
         print(f'Mir launch time: {end - start}')
         return res
 
@@ -301,6 +306,9 @@ class TCRemb:
     
     def __mir_results_proc(self, chain, res_path_chain, clonotypes_path_chain, clonotype_id_str):
         res_df = pd.read_csv(res_path_chain,sep='\t')
+        print(res_df.columns)
+        res_df = res_df.set_axis(['id']+self.dist_cols_dist[chain],axis=1)
+        print(res_df.columns)
         clonotypes = pd.read_csv(clonotypes_path_chain, sep='\t')
         clonotypes['id']=clonotypes.index
         res_df = res_df.merge(clonotypes[['id',clonotype_id_str]], on='id').drop('id',axis=1)
@@ -354,7 +362,7 @@ class TCRemb:
         
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        self.time_dict[chain]['dist_proc'] = {end - start}
+        #self.time_dict[chain]['dist_proc'] = {end - start}
         print(f'dist_proc: {end - start}')
 
     def tcremb_pca(self, chain, n_components = None):
@@ -403,7 +411,7 @@ class TCRemb:
             
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        self.time_dict[chain]['pca'] = {end - start}
+        #self.time_dict[chain]['pca'] = {end - start}
         print(f'pca: {end - start}')    
             
     def tcremb_tsne(self,chain):
@@ -414,5 +422,5 @@ class TCRemb:
         
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        self.time_dict[chain]['tsne'] = {end - start}
+        #self.time_dict[chain]['tsne'] = {end - start}
         print(f'tsne: {end - start}')    

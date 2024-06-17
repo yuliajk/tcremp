@@ -19,6 +19,7 @@ from kneed import KneeLocator
 
 import tcremb.data_proc as data_proc
 import tcremb.ml_utils as ml_utils
+import tcremb.metrics as metrics
 
 class TCRemb_clustering():
     def __init__(self, model_name, threshold=0.7):
@@ -36,9 +37,11 @@ class TCRemb_clustering():
         self.kneedle = {}
         self.poly_degree = 10
         self.coef_dict = {'TRA':0.75, 'TRB': 0.75,'TRA_TRB':0.85}
+        self.label = {}
     
     def clstr(self, chain, data, label_cl=None, model='dbscan',on_pca=True,knee_coef=None):
         self.annotation_id = data.annotation_id
+        self.label[chain] = label_cl
         if knee_coef is None:
             knee_coef = self.coef_dict[chain]
         
@@ -69,17 +72,13 @@ class TCRemb_clustering():
         clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data , data.clonotype_id)
         self.clstr_labels[chain] = clstr_labels.merge(annot_clones).drop(data.clonotype_id, axis=1)
         
-        if label_cl is not None:
+        if self.label[chain] is not None:
             self.binom_res[chain] = ml_utils.binominal_test(pd.merge(self.clstr_labels[chain],data.annot[chain]), 'cluster', label_cl, self.threshold)
             
             if -1 in list(self.clstr_labels[chain]['cluster']):
                 self.binom_res[chain]['is_cluster'] = self.binom_res[chain].apply(lambda x: x.is_cluster if x.cluster != -1 else 0,axis=1)
         
-            #self.binom_res[chain]['is_cluster']= self.binom_res[chain]['total_cluster'].apply(lambda x: 1 if x>1 else 0)
-            #self.binom_res[chain]['enriched_clstr'] =self.binom_res[chain].apply(lambda x:1 
-            #                                                                     if (x.fraction_matched>=self.threshold)
-            #                                                                     and (x.is_cluster==1) else 0,axis=1)
-            self.clstr_metrics[chain] = ml_utils.clstr_metrics(data.annot[chain][label_cl],self.clstr_labels[chain]['cluster'])
+            #self.clstr_metrics[chain] = ml_utils.clstr_metrics(data.annot[chain][label_cl],self.clstr_labels[chain]['cluster'])
         
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res[chain].rename({label_cl:'label_cluster'},axis=1)
                                             , on='cluster',how='left').sort_values(self.annotation_id).reset_index(drop=True)
@@ -98,7 +97,17 @@ class TCRemb_clustering():
                                                                                   + list(data.tcr_columns_paired['TRB'])])
         else: 
             self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain],data.annot[chain][[self.annotation_id] + data.tcr_columns_paired[chain]])
-        
+    
+    
+    def clstr_metrics_calc(self, chain, data):
+        df = data.annot_input[chain].merge(self.clstr_labels[chain], how='left')
+        df['is_cluster'] = df['is_cluster'].fillna(0)
+        self.clstr_metrics[chain] = metrics.get_clustermetrics(df, self.label[chain])
+        self.clstr_metrics[chain]['total pairs TCR-epitope'] = len(data.annot[chain])
+        self.clstr_metrics[chain]['total unique TCRs'] = str(len(data.annot[chain].drop_duplicates(data.clonotype_id)))
+        self.clstr_metrics[chain]['total unique epitopes'] = str(len(data.annot[chain].drop_duplicates(self.label[chain])))
+        self.clstr_metrics[chain]['label']=self.label[chain]
+
 
     def eps_by_knn_knee(self, X_data, chain):
         neighbors=4
@@ -106,7 +115,6 @@ class TCRemb_clustering():
         distances, indices = nbrs.kneighbors(X_data)
         distances = np.sort(distances, axis=0)
         distances = distances[:,1]
-        
         
         self.kneedle[chain] = KneeLocator(range(1,len(distances)+1),  #x values
                               distances, # y values
@@ -120,6 +128,9 @@ class TCRemb_clustering():
                               direction="increasing", ) #parameter from figure
     
         self.eps[chain] = round(distances[self.kneedle[chain].knee]*self.knee_coef,2)
+        if self.eps[chain]==0:
+            self.eps[chain] = round(distances.mean()*self.knee_coef,2)
+            #self.eps[chain] = round(statistics.median(distances)*self.knee_coef,2)
     
     def plot_knee_normalized(self, chain,
                          title: str = "Normalized Knee Point",
