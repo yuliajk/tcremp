@@ -36,9 +36,9 @@ class TCRemb:
     annotation_id = 'annotId'
     random_state = 7
     
-    def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB'):
+    def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB', random_seed=None):
         self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}}
-        self.run_name = run_name
+        #self.run_name = run_name
         self.species = species
         self.clonotypes={} ## extracted clonotypes
         #self.clonotype_label_pairs = {}
@@ -76,7 +76,8 @@ class TCRemb:
         self.time_dict = {}
         
         
-        self.outputs_path = "tcremb_outputs/" + run_name + '/'
+        #self.outputs_path = "tcremb_outputs/" + run_name + '/'
+        self.outputs_path = run_name
         Path(self.outputs_path).mkdir(parents=True, exist_ok=True)
         
         self.clonotypes_path = { 'TRA' : self.outputs_path + 'clonotypes_TRA.txt', 'TRB' : self.outputs_path + 'clonotypes_TRB.txt',
@@ -96,15 +97,16 @@ class TCRemb:
         
         if n:
             new_prototypes_path = { 'TRA' : self.outputs_path + f'prptotypesTRA_{n}.txt', 'TRB' : self.outputs_path + f'prptotypesTRB_{n}.txt'}
+            print(new_prototypes_path)
             try:
                 if prototypes_chain=='TRA_TRB':
-                    self.prototypes_n(n, self.prototypes_path['TRA'], new_prototypes_path['TRA'])
-                    self.prototypes_n(n, self.prototypes_path['TRB'], new_prototypes_path['TRB'])
+                    self.prototypes_n(n, self.prototypes_path['TRA'], new_prototypes_path['TRA'], random_seed=random_seed)
+                    self.prototypes_n(n, self.prototypes_path['TRB'], new_prototypes_path['TRB'], random_seed=random_seed)
                 else:
-                    self.prototypes_n(n, self.prototypes_path[prototypes_chain], new_prototypes_path[prototypes_chain])
+                    self.prototypes_n(n, self.prototypes_path[prototypes_chain], new_prototypes_path[prototypes_chain], random_seed=random_seed)
             except ValueError:
                 print('n is greater than number of clonotypes in prototypes file')
-            self.prototypes_path= new_prototypes_path
+            self.prototypes_path = new_prototypes_path
             if n*2<50:
                 self.__n_components =n*2
         else:
@@ -127,9 +129,12 @@ class TCRemb:
     def prototypes_prep(self, input_file):
         pass
     
-    def prototypes_n(self, n, old_path, new_path):
+    def prototypes_n(self, n, old_path, new_path, random_seed=None):
         #pd.read_csv(self.prototypes_path['TRA'],sep='\t',header=None).sample_n(n).reset_index(drop=True).to_csv('')
-        pd.read_csv(old_path,sep='\t',index_col=0).sample(n).reset_index(drop=True).to_csv(new_path, sep='\t')
+        if random_seed:
+            pd.read_csv(old_path,sep='\t',index_col=0).sample(n = n, random_state = random_seed).reset_index(drop=True).to_csv(new_path, sep='\t')
+        else:
+            pd.read_csv(old_path,sep='\t',index_col=0).iloc[:n].reset_index(drop=True).to_csv(new_path, sep='\t')
     
     def __annot_id(self, data, annotation_id_str):
         df = data.copy()
@@ -306,9 +311,7 @@ class TCRemb:
     
     def __mir_results_proc(self, chain, res_path_chain, clonotypes_path_chain, clonotype_id_str):
         res_df = pd.read_csv(res_path_chain,sep='\t')
-        print(res_df.columns)
         res_df = res_df.set_axis(['id']+self.dist_cols_dist[chain],axis=1)
-        print(res_df.columns)
         clonotypes = pd.read_csv(clonotypes_path_chain, sep='\t')
         clonotypes['id']=clonotypes.index
         res_df = res_df.merge(clonotypes[['id',clonotype_id_str]], on='id').drop('id',axis=1)
