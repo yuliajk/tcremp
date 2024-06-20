@@ -16,6 +16,7 @@ import tcremb.data_proc as data_proc
 
 tcr_columns = ['cdr3aa','v','j','chain']
 tcr_columns_chain = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ'],'TRA_TRB':['a_cdr3aa','TRAV','TRAJ', 'b_cdr3aa','TRBV','TRBJ']}
+label_cluster = 'label_cluster'
 
 annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
     
@@ -26,7 +27,7 @@ def clustering(args, tcremb, outputs_path, output_columns):
 
     #df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.data_id, tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
     #df = model.clstr_labels[args.chain].merge(tcremb.annot[args.chain][output_columns])
-    df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', tcremb.annotation_id]])
+    df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremb.annotation_id]])
     if args.label:
         model.clstr_metrics_calc(args.chain, tcremb)
         #print(f"purity:{model.clstr_metrics[args.chain]['purity']}")

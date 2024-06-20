@@ -75,12 +75,15 @@ class TCRemb_clustering():
         if self.label[chain] is not None:
             self.binom_res[chain] = ml_utils.binominal_test(pd.merge(self.clstr_labels[chain],data.annot[chain]), 'cluster', label_cl, self.threshold)
             
+            self.binom_res[chain] = self.binom_res[chain].rename({label_cl:'label_cluster'},axis=1)
+            
             if -1 in list(self.clstr_labels[chain]['cluster']):
                 self.binom_res[chain]['is_cluster'] = self.binom_res[chain].apply(lambda x: x.is_cluster if x.cluster != -1 else 0,axis=1)
+                self.binom_res[chain]['label_cluster'] = self.binom_res[chain].apply(lambda x: x.label_cluster if x.cluster != -1 else 'no',axis=1)
         
             #self.clstr_metrics[chain] = ml_utils.clstr_metrics(data.annot[chain][label_cl],self.clstr_labels[chain]['cluster'])
         
-            self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res[chain].rename({label_cl:'label_cluster'},axis=1)
+            self.clstr_labels[chain] = pd.merge(self.clstr_labels[chain], self.binom_res[chain]
                                             , on='cluster',how='left').sort_values(self.annotation_id).reset_index(drop=True)
             
             #if check_between:
