@@ -12,6 +12,9 @@ import tcremb.TCRemb_clstr as TCRemb_clstr
 import tcremb.ml_utils as ml_utils
 import tcremb.data_proc as data_proc
 
+from datetime import datetime
+import logging
+
 
 
 tcr_columns = ['cdr3aa','v','j','chain']
@@ -30,11 +33,16 @@ def clustering(args, tcremb, outputs_path, output_columns):
     df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremb.annotation_id]])
     if args.label:
         model.clstr_metrics_calc(args.chain, tcremb)
-        #print(f"purity:{model.clstr_metrics[args.chain]['purity']}")
+        ##print(f"purity:{model.clstr_metrics[args.chain]['purity']}")
         print(f"retention:{model.clstr_metrics[args.chain]['retention']}")
         print(f"f1-score:{model.clstr_metrics[args.chain]['f1-score']}")
         print(f"total pairs TCR-epitope:{model.clstr_metrics[args.chain]['total pairs TCR-epitope']}")
         print(f"total unique epitopes:{model.clstr_metrics[args.chain]['total unique epitopes']}")
+        logging.info(f"purity:{model.clstr_metrics[args.chain]['purity']}")
+        logging.info(f"retention:{model.clstr_metrics[args.chain]['retention']}")
+        logging.info(f"f1-score:{model.clstr_metrics[args.chain]['f1-score']}")
+        logging.info(f"total pairs TCR-epitope:{model.clstr_metrics[args.chain]['total pairs TCR-epitope']}")
+        logging.info(f"total unique epitopes:{model.clstr_metrics[args.chain]['total unique epitopes']}")
     
     #df = df.merge(tcremb.tsne[args.chain])
     #df = df.merge(tcremb.tsne_clones[args.chain].rename({'DM1':'DM1_clones','DM2':'DM2_clones'},axis=1))
@@ -84,6 +92,9 @@ def main():
     else:
         output = 'tcremb_' + PurePath(args.input).name.replace('.','')
         outputs_path= "tcremb_outputs/" + output + '/'
+    
+    logging.basicConfig(filename='tcremb_log.log', level=logging.DEBUG)
+    logging.info(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} start of tcremb run {outputs_path}')
 
     print(f'calculating dists scores, pca and tsne for {args.chain} chain {args.input}')      
     print(f'results and temp files will be in {outputs_path}')
@@ -118,6 +129,7 @@ def main():
     tcremb.annot[args.chain][output_columns].merge(tcremb.tsne[args.chain]).to_csv(f'{outputs_path}tcremb_tsne_{args.chain}.txt', sep='\t', index=False)
     
     if args.clstr_model!='none':
+        logging.info(f'Clustering with model {args.clstr_model}')
         print(f'Clustering with model {args.clstr_model}')
         clustering(args, tcremb, outputs_path, output_columns)
     else:

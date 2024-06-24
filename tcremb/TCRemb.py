@@ -4,6 +4,7 @@ import pandas as pd
 import math
 
 import sys
+import os
 #sys.path.append("../")
 
 from collections import Counter
@@ -22,6 +23,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import seaborn as sns
 
+import logging
+
 #sys.path.append("../mirpy/")
 sys.path.append("../mirpy/mirpy/")
 #from mir.common import parser, Repertoire, SegmentLibrary
@@ -35,6 +38,7 @@ class TCRemb:
     clonotype_id = 'cloneId'
     annotation_id = 'annotId'
     random_state = 7
+    logging = logging.basicConfig(filename='tcremb_log.log', level=logging.DEBUG)
     
     def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB', random_seed=None):
         self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}}
@@ -75,10 +79,10 @@ class TCRemb:
         self.__random_state = 7
         self.time_dict = {}
         
-        
         #self.outputs_path = "tcremb_outputs/" + run_name + '/'
         self.outputs_path = run_name
         Path(self.outputs_path).mkdir(parents=True, exist_ok=True)
+        os.remove(f'{self.outputs_path}filtered_out_data.txt') if os.path.exists(f'{self.outputs_path}filtered_out_data.txt') else print('no file')
         
         self.clonotypes_path = { 'TRA' : self.outputs_path + 'clonotypes_TRA.txt', 'TRB' : self.outputs_path + 'clonotypes_TRB.txt',
                                'TRA_TRB': {'TRA' : self.outputs_path + 'clonotypes_paired_TRA.txt', 'TRB' : self.outputs_path + 'clonotypes_paired_TRB.txt'}}
@@ -97,7 +101,7 @@ class TCRemb:
         
         if n:
             new_prototypes_path = { 'TRA' : self.outputs_path + f'prptotypesTRA_{n}.txt', 'TRB' : self.outputs_path + f'prptotypesTRB_{n}.txt'}
-            print(new_prototypes_path)
+            #print(new_prototypes_path)
             try:
                 if prototypes_chain=='TRA_TRB':
                     self.prototypes_n(n, self.prototypes_path['TRA'], new_prototypes_path['TRA'], random_seed=random_seed)
@@ -106,6 +110,7 @@ class TCRemb:
                     self.prototypes_n(n, self.prototypes_path[prototypes_chain], new_prototypes_path[prototypes_chain], random_seed=random_seed)
             except ValueError:
                 print('n is greater than number of clonotypes in prototypes file')
+                logging.error('n is greater than number of clonotypes in prototypes file')
             self.prototypes_path = new_prototypes_path
             if n*2<50:
                 self.__n_components =n*2
@@ -114,6 +119,7 @@ class TCRemb:
         
         self.dist_cols_dist={'TRA':[f'a_{xs}_{x}' for xs in range(n) for x in ['v','j','cdr3']],
                'TRB':[f'b_{xs}_{x}' for xs in range(n) for x in ['v','j','cdr3']]}
+        
 
     def check_proc_input_data(self):
         data_proc.check_columns(self.raw_input_data, self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'])
@@ -187,7 +193,7 @@ class TCRemb:
     
     def tcremb_clonotypes(self,chain, unique_clonotypes=False):
         #self.time_dict[chain] = {}
-        print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         
         #data_tt = self.__filter_segments(chain, self.input_data)
@@ -255,11 +261,13 @@ class TCRemb:
 
         else:
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
+            logging.error('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
         
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         #self.time_dict[chain]['clonotypes'] = {end - start}
         print(f'Clonotypes extraction time: {end - start}')
+        logging.info(f'Clonotypes extraction time: {end - start}')
      
    
     def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
@@ -278,6 +286,7 @@ class TCRemb:
         end = time.time()
         #self.time_dict[chain]['mir_parse'] = {end - start}
         print(f'parse data for mir: {end - start}')
+        logging.info(f'parse data for mir: {end - start}')
         return lib, db, data_parse
 
     def __mir_launch(self, chain, lib, db, data_parse, nproc, chunk_sz):
@@ -289,9 +298,10 @@ class TCRemb:
         res = matcher.match_to_df(data_parse, nproc=nproc)
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        print(np.shape(res))
+        #print(np.shape(res))
         #self.time_dict[chain]['mir_launch'] = {end - start}
         print(f'Mir launch time: {end - start}')
+        logging.info(f'Mir launch time: {end - start}')
         return res
 
     def tcremb_dists_count(self, chain, nproc= None, chunk_sz=100):
@@ -362,11 +372,13 @@ class TCRemb:
             
         else: 
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
+            logging.error('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
         
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         #self.time_dict[chain]['dist_proc'] = {end - start}
         print(f'dist_proc: {end - start}')
+        logging.info(f'dist_proc: {end - start}')
 
     def tcremb_pca(self, chain, n_components = None):
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
@@ -416,6 +428,7 @@ class TCRemb:
         end = time.time()
         #self.time_dict[chain]['pca'] = {end - start}
         print(f'pca: {end - start}')    
+        logging.info(f'pca: {end - start}')    
             
     def tcremb_tsne(self,chain):
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
@@ -426,4 +439,5 @@ class TCRemb:
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         #self.time_dict[chain]['tsne'] = {end - start}
-        print(f'tsne: {end - start}')    
+        print(f'tsne: {end - start}')
+        logging.info(f'tsne: {end - start}')
