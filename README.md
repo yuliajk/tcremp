@@ -8,7 +8,7 @@ With TCRemb you can:
 - (In progress) predict bindning epitope of single chain or paired chain clonotypes by clustering of input data with VDJdb database
 - (In progress) train clustering model and predict single chain or paired chains clonotypes data
 
-<img width="768" alt="image" src="https://github.com/yuliajk/tcr_emb/assets/74723905/5aeba670-2088-4c38-bfb7-21526a607c42">
+
 
 
 # Instull
@@ -59,31 +59,45 @@ You can use as input data single chain or paired chains datasets:
 
 # Run tcremb
 
-## Basic usege from terminal
+## From terminal
+### Basic usege
 In tcr_emb repo directory
 ```
-python tcremb_dists.py --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
+python tcremb_dists.py --input my_input_data.txt --output my_folder --chain TRA_TRB
 ```
+
 The command above will:
 - check input data format
 - extrcat TRA clonotypes and TRB clonotypes from my_input_data.txt
 - calculate distance scores for TRA clonotypes and for TRB clonnotypes against deafult set of 3000 TRA and TRB prototypes and save dists tables to my_folder/
 - calculate PCA and save PCA table to my_folder/
-- calculate dbscan clusters and save clusters with provided label and cluster label to my_folder/
+- calculate dbscan clusters and save clusters
 
 
-- **chain**
-values: TRA, TRB, TRA_TRB
-- **mode**
-values: clstr, scores   In prgress: clsf, clstr_clsf, clstr_pre, clsf_pred, clstr_clsf_pred. clstr: will calculate dict scores, pca and perform clustering
-scores: will only calculate dist scores
+```
+python tcremb_dists.py --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
+```
+The command above will do all the same as the first command, but also will save clusters with provided label and cluster label
 
-- **skip_scores**
-if you have alreday calculted dist scored before and thay are in the aoutput folder (res_TRA.txt or res_TRB.txt), you can skip this stape by passing --skip_scores True
-- **data_id**
-you can define the column of input data that contains identificator of your data. This column will be included in output files
-- **label**
-if you provide the label for clustering, clustering metrics (purity, total cluster, cluster_matched) will be counted and labels of each cluster will be defined
+```
+python tcremb_dists.py --input my_input_data.txt --chain TRA_TRB --clstr_model none
+```
+The command above will skip clustering step and will save the results to directory tcremb_my_input_datatxt/
+
+### Command parametrs
+| parametr | short usage | description | avalable values | required | deafult value |
+| --- | --- | --- | --- | --- | --- |
+| --input | -i | file with input clonotypes | path to file | yes | - |
+| --chain | -c | single or paired chains | TRA, TRB, TRA_TRB | yes | - |
+| --output | -o | directory to save pipeline outputs | path to directory | no | tcremb_{inputfilename}/ |
+| --clstr_model | -m | clustering model to be used: dbscan, kmeans or run without clustering step (value 'none') | none, dbscan, kmeans | no | dbscan |
+| --label | -l | name of column with data clsasses for clustering. if provided, this value will be added to clustering output table and label of each cluster will be defined | str | no | - |
+| --species | -s | subset of built-in prototypes to be used | HomoSapiens, MacacaMulatta | no | HomoSapiens |
+| --n | -n | number of prototypes to be selected for embedding from built-in subset of prototypes or user provided prototypes | integer | no | 3000 |
+| --random | -r | random seed for randomlly selecting of n prototypes. If not provided, first n prototypes are selected | integer | no | 0 |
+| --prototypes_path | -p | path to input prototypes, if user would like to use custom prototypes | path to file | no | - |
+| --data_id | -d | column with user id in input data. if user would like this id to be added to output tables | str | no | - |
+
 
 ## From Jupyter Notebook
 Assign run_name and label for clustering. Load ypur data
