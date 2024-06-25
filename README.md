@@ -98,7 +98,28 @@ The command above will skip clustering step and will save the results to directo
 | --prototypes_path | -p | path to input prototypes, if user would like to use custom prototypes | path to file | no | - |
 | --data_id | -d | column with user id in input data. if user would like this id to be added to output tables | str | no | - |
 
+# Outputs
+**Common columns**
+- tcremb_id - assigned identificator to each row of the input table
+- cloneId - identificator of unique extracted clonotype. In case of single chain pipeline, stands for TRA or TRB clonotype, in case of paired chain pipeline stands for paired TRA and TRB clonotype.
 
+| File name | description |
+| --- | --- |
+| tcremb_dists_{chain}.txt | Calculated dists for each input clonotype row in the table. Chain can be: TRA, TRB or TRA_TRB |
+| tcremb_pca_{chain}.txt | Calculated PCA components for each input clonotype row in the table. Chain can be: TRA, TRB or TRA_TRB |
+| tcremb_tsne_{chain}.txt | Calculated TSNE dimentions for each input clonotype row in the table. Chain can be: TRA, TRB or TRA_TRB |
+| tcremb_clstr_res_{chain}.txt | Assigned clusters for each input clonotype row in the table. If cluster is -1, this clonotype did not get into one cluster with any other clonotype. Chain can be: TRA, TRB or TRA_TRB |
+| filtered_out_data.txt | rows that were excluded during data cleansing with exclusion reason |
+| clonotypes_{chain}.txt | Clonotypes extracted from input table with assigned cloneId in single chain pipeline. Chain can be: TRA or TRB |
+| clonotypes_paired_{chain}.txt | Clonotypes extracted from input table with assigned cloneId in paired chain pipeline. Chain can be: TRA or TRB |
+| prototypes{chain}_{n}.txt | Зrototypes on which the dists was calculated. n - number of selected prototypes. Chain can be: TRA or TRB. If file is absent, deafult subset of prototypes was used for calculation|
+| res_{chain}.txt | Raw dists table in single chain pipeline. Chain can be: TRA or TRB |
+| res_paired_{chain}.txt | Raw dists table in paired chain pipeline. Chain can be: TRA or TRB |
+
+
+
+
+# Old desc
 ## From Jupyter Notebook
 Assign run_name and label for clustering. Load ypur data
 ```
