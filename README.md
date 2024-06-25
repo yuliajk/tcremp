@@ -1,13 +1,12 @@
 # TCRemb
 TCRemb is a pakage depeloped for T cell gene receptors comparison.
-TCRemb is in the in active development right now.
+TCRemb is in the active development right now.
 
 With TCRemb you can:
-- cluster single chain clonotypes data (TRA or TRB)
-- cluster paired chains clonotypes data (TRA and TRB)
+- cluster single chain (TRA or TRB) or paired chains (TRA and TRB) clonotypes data
 - visualize similiarity of single chain or paired chains clonotypes with TSNE
-- (In progress) train clustering ,odel and predict single chain or paired chains clonotypes data
-- (In progress) train classificational model and predict single chain or paired chains clonotypes data
+- (In progress) predict bindning epitope of single chain or paired chain clonotypes by clustering of input data with VDJdb database
+- (In progress) train clustering model and predict single chain or paired chains clonotypes data
 
 <img width="768" alt="image" src="https://github.com/yuliajk/tcr_emb/assets/74723905/5aeba670-2088-4c38-bfb7-21526a607c42">
 
@@ -25,53 +24,53 @@ pip install -r requirements.txt
 # Input data
 You can use as input data single chain or paired chains datasets:
 - Rep-seq repertuares TRA or TRB data
-- 10x VDJ data
+- single cell VDJ data
 - Clonotypes databases
 
 ## Input format
 ### Common requirements
-**Single chain columns:**
-- data_id - you can provide any column for identification. 
-- cdr3aa - required
-- v - required
-- j - required
-- chain - required
-- label - either epitope either other labels for clustering or classification
-  
-**Double chain columns:**
-- data_id - you can provide any column for identification. 
-- a_cdr3aa - required
-- TRAV - required
-- TRAJ - required
-- b_cdr3aa - required
-- TRBV - required
-- TRBJ - required
-- label - either epitope either other labels for clustering or classification
-
-**Other format requiremnts**
-1. V and J genes must be provided in a format: TRAV35, TRBV11-2 (witout *01)
-2. No missing data of any of the columns: v,j or cdr3
+1. V and J genes must be provided in a format: TRAV35*01, TRBV11-2*01. If allele is missing, TCRemb will add *01, if allel is *02, it will be replaced with *01
+2. No missing data of any of the columns: V,J or CDR3
 3. No ',' , '.' , ':' , ';' , '*' , '_' , '"' or other special simbols in V, J or CDR3
 
+### Input columns
+| Column name | Description | Required |
+| ----------- | ----------- | ----------- |
+| a_cdr3aa | TRA chain cdr3 | required |
+| TRAV | TRA V segment | required |
+| TRAJ | TRA J segment | required |
+| b_cdr3aa | TRB chain cdr3 | required |
+| TRBV | TRB V segment | required |
+| TRBJ | TRB J segment | required |
+| data_id | user provided id | no |
+| label | user provided label for clustering | no |
+
+
 ### Single chain example
-| data_id | cdr3aa |v| j| chain | label |
-| :---:   | :---: | :---: | :---: | :---: | :---: |
-| GACTGCGCATCGTCGG-28   | CAGHTGNQFYF | TRAV35	 | TRAJ49 | TRA | IVTDFSVIK |
-| GACTGCGCATCGTCGG-28   | CASSWGGGSHYGYTF | TRBV11-2  | TRBJ1-2 | TRB | IVTDFSVIK |
+| data_id | a_cdr3aa | TRAV | TRAJ | b_cdr3aa | TRBV | TRBJ| label |
+| :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| GACTGCGCATCGTCGG-28   | CAGHTGNQFYF | TRAV35	 | TRAJ49 |   |  |  |  IVTDFSVIK |
+| GACTGCGCATCGTCGG-28   |  |  |   | CASSWGGGSHYGYTF | TRBV11-2  | TRBJ1-2 |  IVTDFSVIK |
 
 ### Paired chains example
-| data_id | a_cdr3aa | TRAV | TRAJ | b_cdr3aa | TRBV | TRBJ | labels |
+| data_id | a_cdr3aa | TRAV | TRAJ | b_cdr3aa | TRBV | TRBJ | label |
 | :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | GACTGCGCATCGTCGG-28   | CAGHTGNQFYF | TRAV35	 | TRAJ49 | CASSWGGGSHYGYTF | TRBV11-2  | TRBJ1-2 | IVTDFSVIK |
 
 # Run tcremb
 
-## From terminal
+## Basic usege from terminal
 In tcr_emb repo directory
-The command below will extrcat TRA clonotypes from my_input_data.txt, calculate distance scores and save clusters table with epitope as label in folder tcremb_outputs/my_run
 ```
-python tcremb_run.py --input my_input_data.txt --runname my_run --chain TRA --label epitope
+python tcremb_dists.py --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
 ```
+The command above will:
+- check input data format
+- extrcat TRA clonotypes and TRB clonotypes from my_input_data.txt
+- calculate distance scores for TRA clonotypes and for TRB clonnotypes against deafult set of 3000 TRA and TRB prototypes and save dists tables to my_folder/
+- calculate PCA and save PCA table to my_folder/
+- calculate dbscan clusters and save clusters with provided label and cluster label to my_folder/
+
 
 - **chain**
 values: TRA, TRB, TRA_TRB
