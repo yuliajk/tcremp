@@ -96,7 +96,7 @@ def main():
         output = 'tcremb_' + PurePath(args.input).name.replace('.','')
         outputs_path= "tcremb_outputs/" + output + '/'
     
-    logging.basicConfig(filename='tcremb_log.log', level=logging.DEBUG)
+    logging.basicConfig(filename=f'{outputs_path}tcremb_log.log', level=logging.DEBUG)
     logging.info(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} start of tcremb run {outputs_path}')
 
     print(f'calculating dists scores, pca and tsne for {args.chain} chain {args.input}')      

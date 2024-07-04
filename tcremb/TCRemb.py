@@ -38,7 +38,7 @@ class TCRemb:
     clonotype_id = 'cloneId'
     annotation_id = 'annotId'
     random_state = 7
-    logging = logging.basicConfig(filename='tcremb_log.log', level=logging.DEBUG)
+    #logger = logging.getLogger(__name__)
     
     def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB', random_seed=None):
         self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}}
@@ -59,6 +59,8 @@ class TCRemb:
         self.tsne_clones={}
         self.clstr_labels ={}
         self.clsf_labels = {}
+        
+        
         
         self.tcr_columns = ['cdr3aa','v','j','chain']
         self.tcr_columns_paired = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ']}
@@ -83,6 +85,8 @@ class TCRemb:
         #self.outputs_path = "tcremb_outputs/" + run_name + '/'
         self.outputs_path = os.path.join(run_name, '')
         Path(self.outputs_path).mkdir(parents=True, exist_ok=True)
+        logging.basicConfig(filename=f'{self.outputs_path}tcremb_log.log', level=logging.DEBUG)
+        
         os.remove(f'{self.outputs_path}filtered_out_data.txt') if os.path.exists(f'{self.outputs_path}filtered_out_data.txt') else print('')
         
         self.clonotypes_path = { 'TRA' : self.outputs_path + 'clonotypes_TRA.txt', 'TRB' : self.outputs_path + 'clonotypes_TRB.txt',
@@ -121,7 +125,8 @@ class TCRemb:
         self.dist_cols_dist={'TRA':[f'a_{xs}_{x}' for xs in range(n) for x in ['v','j','cdr3']],
                'TRB':[f'b_{xs}_{x}' for xs in range(n) for x in ['v','j','cdr3']]}
         
-
+        
+    
     def check_proc_input_data(self):
         data_proc.check_columns(self.raw_input_data, self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'])
         self.input_data = data_proc.clean_at_least_cdr3a_or_cdr3b(self.raw_input_data, self.tcr_columns_paired['TRA'][0], self.tcr_columns_paired['TRB'][0], self.outputs_path)
@@ -439,7 +444,7 @@ class TCRemb:
         #print(f'pca: {end - start}')    
         logging.info(f'pca: {end - start}')    
             
-    def tcremb_tsne(self,chain):
+    def tcremb_tsne(self,chain, ):
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         self.tsne[chain] = ml_utils.tsne_proc(self.pca[chain] , self.annotation_id, self.__tsne_init, self.__random_state, self.__tsne_perplexity)
