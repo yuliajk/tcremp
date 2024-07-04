@@ -50,10 +50,13 @@ def remove_backslash(data, tcr_columns):
 
 
 
-def filter_clones_data(df_clones, tcr_columns, file_dir = None):
+def filter_clones_data(df_clones, tcr_columns, file_dir = None, cdr3nt=None):
     #print(df_clones.shape)
     df = df_clones.copy()
     df['filtered_out'] = df[tcr_columns[0]].isna() + df[tcr_columns[0]].str.contains(',') + df[tcr_columns[0]].str.contains('\.') + df[tcr_columns[0]].str.contains('\_') + df[tcr_columns[0]].str.contains('\*') + df[tcr_columns[1]].isna() + df[tcr_columns[1]].str.contains(',') + df[tcr_columns[1]].str.contains('\.') + df[tcr_columns[2]].isna() + df[tcr_columns[2]].str.contains(',') + df[tcr_columns[2]].str.contains('\.')    
+    
+    if cdr3nt:
+        df['filtered_out'] = df['filtered_out'] + df[tcr_columns[0]].isna() + df[cdr3nt].str.contains(',') + df[cdr3nt].str.contains('\.') + df[cdr3nt].str.contains('\_') + df[cdr3nt].str.contains('\*')
     
     if file_dir:
         write_filtered_out(df, file_dir, 'CDR3 or V or J is absent or contains invalid character')

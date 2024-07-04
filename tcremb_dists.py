@@ -30,8 +30,9 @@ def clustering(args, tcremb, outputs_path, output_columns):
 
     #df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.data_id, tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
     #df = model.clstr_labels[args.chain].merge(tcremb.annot[args.chain][output_columns])
-    df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremb.annotation_id]])
+    #df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremb.annotation_id]])
     if args.label:
+        df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremb.annotation_id]])
         model.clstr_metrics_calc(args.chain, tcremb)
         ##print(f"purity:{model.clstr_metrics[args.chain]['purity']}")
         print(f"retention:{model.clstr_metrics[args.chain]['retention']}")
@@ -43,6 +44,8 @@ def clustering(args, tcremb, outputs_path, output_columns):
         logging.info(f"f1-score:{model.clstr_metrics[args.chain]['f1-score']}")
         logging.info(f"total pairs TCR-epitope:{model.clstr_metrics[args.chain]['total pairs TCR-epitope']}")
         logging.info(f"total unique epitopes:{model.clstr_metrics[args.chain]['total unique epitopes']}")
+    else:
+        df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', tcremb.annotation_id]])
     
     #df = df.merge(tcremb.tsne[args.chain])
     #df = df.merge(tcremb.tsne_clones[args.chain].rename({'DM1':'DM1_clones','DM2':'DM2_clones'},axis=1))
@@ -101,7 +104,7 @@ def main():
     
     data_preped = pd.read_csv(args.input,sep='\t')
     
-    
+    print(f'Running TCRemb with: input data {args.input},output directory {outputs_path}, chain {args.chain}')
     tcremb = TCRemb.TCRemb(run_name = outputs_path, input_data = data_preped, data_id=args.data_id, prototypes_path= args.prototypes_path, n = args.n, species = args.species, prototypes_chain = args.chain, random_seed=args.random)
     
     tcremb.tcremb_clonotypes(args.chain, args.unique_clonotypes)

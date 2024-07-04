@@ -42,6 +42,7 @@ class TCRemb:
     
     def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB', random_seed=None):
         self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}}
+        self.segments_path = '../mirpy/mirpy/mir/resources/segments.txt'
         #self.run_name = run_name
         self.species = species
         self.clonotypes={} ## extracted clonotypes
@@ -80,9 +81,9 @@ class TCRemb:
         self.time_dict = {}
         
         #self.outputs_path = "tcremb_outputs/" + run_name + '/'
-        self.outputs_path = run_name
+        self.outputs_path = os.path.join(run_name, '')
         Path(self.outputs_path).mkdir(parents=True, exist_ok=True)
-        os.remove(f'{self.outputs_path}filtered_out_data.txt') if os.path.exists(f'{self.outputs_path}filtered_out_data.txt') else print('no file')
+        os.remove(f'{self.outputs_path}filtered_out_data.txt') if os.path.exists(f'{self.outputs_path}filtered_out_data.txt') else print('')
         
         self.clonotypes_path = { 'TRA' : self.outputs_path + 'clonotypes_TRA.txt', 'TRB' : self.outputs_path + 'clonotypes_TRB.txt',
                                'TRA_TRB': {'TRA' : self.outputs_path + 'clonotypes_paired_TRA.txt', 'TRB' : self.outputs_path + 'clonotypes_paired_TRB.txt'}}
@@ -132,8 +133,16 @@ class TCRemb:
         self.input_data = data_proc.add_allele(self.input_data,self.tcr_columns_paired['TRB']) 
         
     
-    def prototypes_prep(self, input_file):
-        pass
+    def prototypes_prep(self, input_file_path):
+        prototypes = pd.read_csv(input_file_path, sep='\t')
+        prototypes = data_proc.filter_clones_data(prototypes, ['cdr3aa','v','j'], cdr3nt='cdr3nt')
+        prototypes = data_proc.filter_segments(prototypes, segments_path=self.segments_path, v = 'v', j = 'j')
+        prototypes_a = prototypes[prototypes['chain']=='TRA']
+        if len(prototypes_a)>0:
+            prototypes_a.reset_index(drop=True).drop('chain',axis=1).to_csv(self.prototypes_path['TRA'], sep='\t')
+        prototypes_b = prototypes[prototypes['chain']=='TRB']
+        if len(prototypes_b)>0:
+            prototypes_b.reset_index(drop=True).drop('chain',axis=1).to_csv(self.prototypes_path['TRB'], sep='\t')
     
     def prototypes_n(self, n, old_path, new_path, random_seed=None):
         #pd.read_csv(self.prototypes_path['TRA'],sep='\t',header=None).sample_n(n).reset_index(drop=True).to_csv('')
@@ -187,8 +196,8 @@ class TCRemb:
         df = data.copy()
         df = data_proc.filter_clones_data(df, self.tcr_columns_paired[chain], file_dir=self.outputs_path)
         #segments_path = mir.__file__.replace('__init__.py','resources/segments.txt')
-        segments_path = '../mirpy/mirpy/mir/resources/segments.txt'
-        df = data_proc.filter_segments(df, segments_path=segments_path, v = self.tcr_columns_paired[chain][1], j = self.tcr_columns_paired[chain][2], organism=self.species, file_dir=self.outputs_path)
+        #segments_path = '../mirpy/mirpy/mir/resources/segments.txt'
+        df = data_proc.filter_segments(df, segments_path=self.segments_path, v = self.tcr_columns_paired[chain][1], j = self.tcr_columns_paired[chain][2], organism=self.species, file_dir=self.outputs_path)
         return df
     
     def tcremb_clonotypes(self,chain, unique_clonotypes=False):
@@ -266,7 +275,7 @@ class TCRemb:
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         #self.time_dict[chain]['clonotypes'] = {end - start}
-        print(f'Clonotypes extraction time: {end - start}')
+        #print(f'Clonotypes extraction time: {end - start}')
         logging.info(f'Clonotypes extraction time: {end - start}')
      
    
@@ -280,12 +289,12 @@ class TCRemb:
                                   )
         data_parse = pars.parse(source=clonotypes_path)
         data_parse = [x for x in data_parse if len(x.cdr3aa) in range(7, 23)]
-        print(data_parse[0:10])
+        #print(data_parse[0:10])
         
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         #self.time_dict[chain]['mir_parse'] = {end - start}
-        print(f'parse data for mir: {end - start}')
+        #print(f'parse data for mir: {end - start}')
         logging.info(f'parse data for mir: {end - start}')
         return lib, db, data_parse
 
@@ -300,7 +309,7 @@ class TCRemb:
         end = time.time()
         #print(np.shape(res))
         #self.time_dict[chain]['mir_launch'] = {end - start}
-        print(f'Mir launch time: {end - start}')
+        #print(f'Mir launch time: {end - start}')
         logging.info(f'Mir launch time: {end - start}')
         return res
 
@@ -377,7 +386,7 @@ class TCRemb:
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         #self.time_dict[chain]['dist_proc'] = {end - start}
-        print(f'dist_proc: {end - start}')
+        #print(f'dist_proc: {end - start}')
         logging.info(f'dist_proc: {end - start}')
 
     def tcremb_pca(self, chain, n_components = None):
@@ -427,7 +436,7 @@ class TCRemb:
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         #self.time_dict[chain]['pca'] = {end - start}
-        print(f'pca: {end - start}')    
+        #print(f'pca: {end - start}')    
         logging.info(f'pca: {end - start}')    
             
     def tcremb_tsne(self,chain):
@@ -439,5 +448,5 @@ class TCRemb:
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
         #self.time_dict[chain]['tsne'] = {end - start}
-        print(f'tsne: {end - start}')
+        #print(f'tsne: {end - start}')
         logging.info(f'tsne: {end - start}')
