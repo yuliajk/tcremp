@@ -99,7 +99,7 @@ def main():
     logging.basicConfig(filename=f'{outputs_path}tcremb_log.log', level=logging.DEBUG)
     logging.info(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} start of tcremb run {outputs_path}')
 
-    print(f'calculating dists scores, pca and tsne for {args.chain} chain {args.input}')      
+    #print(f'calculating dists scores, pca and tsne for {args.chain} chain {args.input}')      
     print(f'results and temp files will be in {outputs_path}')
     
     data_preped = pd.read_csv(args.input,sep='\t')
@@ -107,6 +107,7 @@ def main():
     print(f'Running TCRemb with: input data {args.input},output directory {outputs_path}, chain {args.chain}')
     tcremb = TCRemb.TCRemb(run_name = outputs_path, input_data = data_preped, data_id=args.data_id, prototypes_path= args.prototypes_path, n = args.n, species = args.species, prototypes_chain = args.chain, random_seed=args.random)
     
+    print('Stage: Data cleaning and clonotypes extraction')
     tcremb.tcremb_clonotypes(args.chain, args.unique_clonotypes)
     
     ## output columns
@@ -117,6 +118,7 @@ def main():
         output_columns.append(args.label)
     
     ## count and save dists
+    print('Stage: Distance scores calculation')
     tcremb.tcremb_dists_count(args.chain)
     tcremb.tcremb_dists(args.chain)        
     tcremb.annot[args.chain][output_columns].merge(tcremb.annot_dists[args.chain]).to_csv(f'{outputs_path}tcremb_dists_{args.chain}.txt', sep='\t', index=False)
@@ -124,16 +126,19 @@ def main():
     #dist_df.to_csv(f'{outputs_path}tcremb_dists_{args.chain}.txt', sep='\t', index=False)
     
     ## pca
+    print('Stage: PCA calculation')
     tcremb.tcremb_pca(args.chain)
     tcremb.annot[args.chain][output_columns].merge(tcremb.pca[args.chain]).to_csv(f'{outputs_path}tcremb_pca_{args.chain}.txt', sep='\t', index=False)
     
     ## tsne
+    print('Stage: TSNE calculation')
     tcremb.tcremb_tsne(args.chain)
     tcremb.annot[args.chain][output_columns].merge(tcremb.tsne[args.chain]).to_csv(f'{outputs_path}tcremb_tsne_{args.chain}.txt', sep='\t', index=False)
     
+    
     if args.clstr_model!='none':
         logging.info(f'Clustering with model {args.clstr_model}')
-        print(f'Clustering with model {args.clstr_model}')
+        print(f'Stage: Clustering with model {args.clstr_model}')
         clustering(args, tcremb, outputs_path, output_columns)
     else:
         print('Finished without clustering')
