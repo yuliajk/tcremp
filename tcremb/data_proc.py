@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import math
 
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def write_filtered_out(df,file_dir,header = None):

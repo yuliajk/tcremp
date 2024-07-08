@@ -34,6 +34,9 @@ from mir.common import parser
 from mir.distances import ClonotypeAligner, GermlineAligner
 from mir.comparative import DenseMatcher
 
+import warnings
+warnings.filterwarnings("ignore")
+
 class TCRemb:
     clonotype_id = 'cloneId'
     annotation_id = 'annotId'

@@ -32,6 +32,9 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score, precision_score, recall_score, accuracy_score
 from sklearn.model_selection import cross_val_score
 
+import warnings
+warnings.filterwarnings("ignore")
+
 #colors = ['lime','red','cyan','orange','darkgreen','pink','blue','yellow','teal','maroon','indigo','fuchsia','olive','navy','palegreen','crimson','gold','lightsalmon','black' ]
 
 colors = ['red','cyan','lime','darkgreen','gold','pink','lightsalmon','yellow','maroon','blue','teal','orange','olive','indigo','fuchsia','palegreen','crimson','navy','black']
