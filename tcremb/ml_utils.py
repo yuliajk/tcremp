@@ -53,6 +53,8 @@ def pca_proc(res_df, id_column='id', n_components=100, plot=False):
     
     pca_data = pd.DataFrame(pca.transform(data_proc))
     
+    pca_data = pca_data.rename(columns= lambda x: f'PC{x}')
+    
     pca_data[id_column] = res_df[id_column]
     
     return pca_data
