@@ -66,8 +66,10 @@ class TCRemb:
         
         
         self.tcr_columns = ['cdr3aa','v','j','chain']
-        self.tcr_columns_paired = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ']}
-        self.__rename_tcr_columns_paired = {'TRA':{'a_cdr3aa':'cdr3aa','TRAV':'v','TRAJ':'j','cloneId_TRA':'cloneId'},'TRB':{'b_cdr3aa':'cdr3aa','TRBV':'v','TRBJ':'j','cloneId_TRB':'cloneId'}}
+        #self.tcr_columns_paired = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ']}
+        self.tcr_columns_paired = {'TRA':['a_cdr3aa','a_v','a_j'],'TRB':['b_cdr3aa','b_v','b_j']}
+        #self.__rename_tcr_columns_paired = {'TRA':{'a_cdr3aa':'cdr3aa','TRAV':'v','TRAJ':'j','cloneId_TRA':'cloneId'},'TRB':{'b_cdr3aa':'cdr3aa','TRBV':'v','TRBJ':'j','cloneId_TRB':'cloneId'}}
+        self.__rename_tcr_columns_paired = {'TRA':{'a_cdr3aa':'cdr3aa','a_v':'v','a_j':'j','cloneId_TRA':'cloneId'},'TRB':{'b_cdr3aa':'cdr3aa','b_v':'v','b_j':'j','cloneId_TRB':'cloneId'}}
         self.clonotype_id = 'cloneId'
         self.clonotyoe_label_id = 'pairId'
         self.input_id= 'inputId'

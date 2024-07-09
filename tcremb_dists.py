@@ -18,7 +18,8 @@ import logging
 
 
 tcr_columns = ['cdr3aa','v','j','chain']
-tcr_columns_chain = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ'],'TRA_TRB':['a_cdr3aa','TRAV','TRAJ', 'b_cdr3aa','TRBV','TRBJ']}
+#tcr_columns_chain = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ'],'TRA_TRB':['a_cdr3aa','TRAV','TRAJ', 'b_cdr3aa','TRBV','TRBJ']}
+tcr_columns_chain = {'TRA':['a_cdr3aa','a_v','a_j'],'TRB':['b_cdr3aa','b_v','b_j'],'TRA_TRB':['a_cdr3aa','a_v','a_j', 'b_cdr3aa','b_v','b_j']}
 label_cluster = 'label_cluster'
 
 annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
