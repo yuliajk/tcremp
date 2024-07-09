@@ -29,7 +29,7 @@ def clustering(args, tcremb, outputs_path, output_columns):
     model = TCRemb_clstr.TCRemb_clustering(model_name = args.clstr_model)
     model.clstr(chain= args.chain, data= tcremb, label_cl=args.label, model = args.clstr_model)
 
-    #df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.data_id, tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
+    #df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.clonotype_index, tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
     #df = model.clstr_labels[args.chain].merge(tcremb.annot[args.chain][output_columns])
     #df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremb.annotation_id]])
     if args.label:
@@ -63,7 +63,7 @@ def main():
     parser.add_argument('-o','--output', type=str,#required=True,
                         help='Output directory path. Outputs will be stored in corresponding directory. If None -  tcremb_outputs/input_filename')
         
-    parser.add_argument('--data_id', type=str,
+    parser.add_argument('--clonotype_index', type=str,
                         help='column with id of ypur input data. if you would like this id to be added to output of clustering or classifications')
     
     parser.add_argument('-c','--chain', type=str,required=True,
@@ -106,15 +106,15 @@ def main():
     data_preped = pd.read_csv(args.input,sep='\t')
     
     print(f'Running TCRemb with: input data {args.input},output directory {outputs_path}, chain {args.chain}')
-    tcremb = TCRemb.TCRemb(run_name = outputs_path, input_data = data_preped, data_id=args.data_id, prototypes_path= args.prototypes_path, n = args.n, species = args.species, prototypes_chain = args.chain, random_seed=args.random)
+    tcremb = TCRemb.TCRemb(run_name = outputs_path, input_data = data_preped, clonotype_index=args.clonotype_index, prototypes_path= args.prototypes_path, n = args.n, species = args.species, prototypes_chain = args.chain, random_seed=args.random)
     
     print('Stage: Data cleaning and clonotypes extraction')
     tcremb.tcremb_clonotypes(args.chain, args.unique_clonotypes)
     
     ## output columns
     output_columns = [tcremb.annotation_id,tcremb.clonotype_id] + tcr_columns_chain[args.chain]
-    if tcremb.data_id:
-        output_columns.append(tcremb.data_id)
+    if tcremb.clonotype_index:
+        output_columns.append(tcremb.clonotype_index)
     if args.label:
         output_columns.append(args.label)
     

@@ -23,8 +23,8 @@ from tcremb.TCRemb_clstr import TCRemb_clustering
 
 
 class TCRemb_vdjdb(TCRemb):
-    def __init__(self,run_name, input_data, data_id = None):
-        TCRemb.__init__(self,run_name, input_data, data_id)
+    def __init__(self,run_name, input_data, clonotype_index = None):
+        TCRemb.__init__(self,run_name, input_data, clonotype_index)
         self.clonotypes_pred={}
         #self.vdjdb_path = 'data/VDJdb_pred/vdjdb_data_with_cloneId.txt'
         self.vdjdb_path = { 'TRA' : 'data/VDJdb_pred/vdjdb_data_with_cloneId_TRA.txt', 'TRB' : 'data/VDJdb_pred/vdjdb_data_with_cloneId_TRB.txt',

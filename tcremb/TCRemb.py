@@ -43,8 +43,8 @@ class TCRemb:
     random_state = 7
     #logger = logging.getLogger(__name__)
     
-    def __init__(self,run_name, input_data, data_id = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB', random_seed=None):
-        self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_preped/olga_humanTRA.txt', 'TRB' : 'data/data_preped/olga_humanTRB.txt'}}
+    def __init__(self,run_name, input_data, clonotype_index = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB', random_seed=None):
+        self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_prebuilt/olga_humanTRA.txt', 'TRB' : 'data/data_prebuilt/olga_humanTRB.txt'}}
         self.segments_path = '../mirpy/mirpy/mir/resources/segments.txt'
         #self.run_name = run_name
         self.species = species
@@ -74,7 +74,8 @@ class TCRemb:
         self.clonotyoe_label_id = 'pairId'
         self.input_id= 'inputId'
         #self.annotation_id = 'annotId'
-        self.annotation_id = 'id' ## index
+        #self.annotation_id = 'id' ## index
+        self.annotation_id = 'tcremp_id' ## index
         self.clonotype_id_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
         
         self.prototypes_path = self.__prototypes_path_subsets[species]
@@ -99,7 +100,7 @@ class TCRemb:
         self.dists_res_path = {'TRA' : self.outputs_path + 'res_TRA.txt', 'TRB': self.outputs_path + 'res_TRB.txt',
                               'TRA_TRB':{'TRA' : self.outputs_path + 'res_paired_TRA.txt', 'TRB': self.outputs_path + 'res_paired_TRB.txt'}}
         
-        self.data_id = data_id
+        self.clonotype_index = clonotype_index
         self.raw_input_data = input_data.copy()
         #050624self.input_data = input_data.copy()
         self.check_proc_input_data() #050624
