@@ -44,8 +44,9 @@ class TCRemP:
     #logger = logging.getLogger(__name__)
     
     def __init__(self,run_name, input_data, clonotype_index = None, prototypes_path=None, n=None, species='HomoSapiens', prototypes_chain='TRA_TRB', random_seed=None):
-        self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_prebuilt/olga_humanTRA.txt', 'TRB' : 'data/data_prebuilt/olga_humanTRB.txt'}}
-        self.segments_path = '../mirpy/mirpy/mir/resources/segments.txt'
+        self.__prototypes_path_subsets = {'HomoSapiens': { 'TRA' :'data/data_prebuilt/olga_humanTRA.txt', 'TRB' : 'data/data_prebuilt/olga_humanTRB.txt'}}    
+        #self.segments_path = '../mirpy/mirpy/mir/resources/segments.txt'
+        self.segments_path = 'data/segments.txt'
         #self.run_name = run_name
         self.species = species
         self.clonotypes={} ## extracted clonotypes
