@@ -27,6 +27,7 @@ Planned features:
 Simply clone the repo via git, make corresponding [conda](https://docs.conda.io/en/latest/) environment and install via [pip](https://pypi.org/project/pip/) with requirements
 
 ```{bash}
+git clone https://github.com/antigenomics/mirpy.git
 git clone https://github.com/yuliajk/tcr_emp.git
 cd tcr_emp
 conda create -n tcremp_env ipython python=3.11
