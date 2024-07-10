@@ -7,10 +7,10 @@ from time import strftime, gmtime
 import sys
 sys.path.append("../")
 sys.path.append("../mirpy/mirpy/")
-import tcremb.TCRemb as TCRemb
-import tcremb.TCRemb_clstr as TCRemb_clstr
-import tcremb.ml_utils as ml_utils
-import tcremb.data_proc as data_proc
+import tcremp.TCRemP as TCRemP
+import tcremp.TCRemP_clstr as TCRemP_clstr
+import tcremp.ml_utils as ml_utils
+import tcremp.data_proc as data_proc
 
 from datetime import datetime
 import logging
@@ -24,17 +24,17 @@ label_cluster = 'label_cluster'
 
 annotation_tcr_id_columns_dict = {'TRA': 'cloneId','TRB': 'cloneId','TRA_TRB': {'TRA':'cloneId_TRA', 'TRB':'cloneId_TRB'}}
     
-def clustering(args, tcremb, outputs_path, output_columns):
-    #output_columns = [tcremb.annotation_id,tcremb.clonotype_id] + tcr_columns_chain[args.chain]
-    model = TCRemb_clstr.TCRemb_clustering(model_name = args.clstr_model)
-    model.clstr(chain= args.chain, data= tcremb, label_cl=args.label, model = args.clstr_model)
+def clustering(args, tcremp, outputs_path, output_columns):
+    #output_columns = [tcremp.annotation_id,tcremp.clonotype_id] + tcr_columns_chain[args.chain]
+    model = TCRemP_clstr.TCRemP_clustering(model_name = args.clstr_model)
+    model.clstr(chain= args.chain, data= tcremp, label_cl=args.label, model = args.clstr_model)
 
-    #df = kmeans.clstr_labels[args.chain].merge(tcremb.annot[args.chain][[tcremb.clonotype_index, tcremb.annotation_id,tcremb.clonotype_id,args.label, 'clone_size']])
-    #df = model.clstr_labels[args.chain].merge(tcremb.annot[args.chain][output_columns])
-    #df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremb.annotation_id]])
+    #df = kmeans.clstr_labels[args.chain].merge(tcremp.annot[args.chain][[tcremp.clonotype_index, tcremp.annotation_id,tcremp.clonotype_id,args.label, 'clone_size']])
+    #df = model.clstr_labels[args.chain].merge(tcremp.annot[args.chain][output_columns])
+    #df = tcremp.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremp.annotation_id]])
     if args.label:
-        df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremb.annotation_id]])
-        model.clstr_metrics_calc(args.chain, tcremb)
+        df = tcremp.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', label_cluster,tcremp.annotation_id]])
+        model.clstr_metrics_calc(args.chain, tcremp)
         ##print(f"purity:{model.clstr_metrics[args.chain]['purity']}")
         print(f"retention:{model.clstr_metrics[args.chain]['retention']}")
         print(f"f1-score:{model.clstr_metrics[args.chain]['f1-score']}")
@@ -46,22 +46,22 @@ def clustering(args, tcremb, outputs_path, output_columns):
         logging.info(f"total pairs TCR-epitope:{model.clstr_metrics[args.chain]['total pairs TCR-epitope']}")
         logging.info(f"total unique epitopes:{model.clstr_metrics[args.chain]['total unique epitopes']}")
     else:
-        df = tcremb.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', tcremb.annotation_id]])
+        df = tcremp.annot[args.chain][output_columns].merge(model.clstr_labels[args.chain][['cluster', tcremp.annotation_id]])
     
-    #df = df.merge(tcremb.tsne[args.chain])
-    #df = df.merge(tcremb.tsne_clones[args.chain].rename({'DM1':'DM1_clones','DM2':'DM2_clones'},axis=1))
-    df.to_csv(f'{outputs_path}tcremb_clstr_res_{args.chain}.txt', sep='\t', index=False)
+    #df = df.merge(tcremp.tsne[args.chain])
+    #df = df.merge(tcremp.tsne_clones[args.chain].rename({'DM1':'DM1_clones','DM2':'DM2_clones'},axis=1))
+    df.to_csv(f'{outputs_path}tcremp_clstr_res_{args.chain}.txt', sep='\t', index=False)
     
     
 
 def main():
-    parser = argparse.ArgumentParser(description='TCRemb dists')
+    parser = argparse.ArgumentParser(description='tcremp dists')
 
     parser.add_argument('-i','--input', type=str,required=True,
                         help='Input file of TCRs')
     
     parser.add_argument('-o','--output', type=str,#required=True,
-                        help='Output directory path. Outputs will be stored in corresponding directory. If None -  tcremb_outputs/input_filename')
+                        help='Output directory path. Outputs will be stored in corresponding directory. If None -  tcremp_outputs/input_filename')
         
     parser.add_argument('--clonotype_index', type=str,
                         help='column with id of ypur input data. if you would like this id to be added to output of clustering or classifications')
@@ -94,53 +94,53 @@ def main():
     if args.output:
         outputs_path= args.output + '/'
     else:
-        output = 'tcremb_' + PurePath(args.input).name.replace('.','')
-        outputs_path= "tcremb_outputs/" + output + '/'
+        output = 'tcremp_' + PurePath(args.input).name.replace('.','')
+        outputs_path= "tcremp_outputs/" + output + '/'
     
-    logging.basicConfig(filename=f'{outputs_path}tcremb_log.log', level=logging.DEBUG)
-    logging.info(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} start of tcremb run {outputs_path}')
+    logging.basicConfig(filename=f'{outputs_path}tcremp_log.log', level=logging.DEBUG)
+    logging.info(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} start of tcremp run {outputs_path}')
 
     #print(f'calculating dists scores, pca and tsne for {args.chain} chain {args.input}')      
     print(f'results and temp files will be in {outputs_path}')
     
     data_preped = pd.read_csv(args.input,sep='\t')
     
-    print(f'Running TCRemb with: input data {args.input},output directory {outputs_path}, chain {args.chain}')
-    tcremb = TCRemb.TCRemb(run_name = outputs_path, input_data = data_preped, clonotype_index=args.clonotype_index, prototypes_path= args.prototypes_path, n = args.n, species = args.species, prototypes_chain = args.chain, random_seed=args.random)
+    print(f'Running tcremp with: input data {args.input},output directory {outputs_path}, chain {args.chain}')
+    tcremp = TCRemP.TCRemP(run_name = outputs_path, input_data = data_preped, clonotype_index=args.clonotype_index, prototypes_path= args.prototypes_path, n = args.n, species = args.species, prototypes_chain = args.chain, random_seed=args.random)
     
     print('Stage: Data cleaning and clonotypes extraction')
-    tcremb.tcremb_clonotypes(args.chain, args.unique_clonotypes)
+    tcremp.tcremp_clonotypes(args.chain, args.unique_clonotypes)
     
     ## output columns
-    output_columns = [tcremb.annotation_id,tcremb.clonotype_id] + tcr_columns_chain[args.chain]
-    if tcremb.clonotype_index:
-        output_columns.append(tcremb.clonotype_index)
+    output_columns = [tcremp.annotation_id,tcremp.clonotype_id] + tcr_columns_chain[args.chain]
+    if tcremp.clonotype_index:
+        output_columns.append(tcremp.clonotype_index)
     if args.label:
         output_columns.append(args.label)
     
     ## count and save dists
     print('Stage: Distance scores calculation')
-    tcremb.tcremb_dists_count(args.chain)
-    tcremb.tcremb_dists(args.chain)        
-    tcremb.annot[args.chain][output_columns].merge(tcremb.annot_dists[args.chain]).to_csv(f'{outputs_path}tcremb_dists_{args.chain}.txt', sep='\t', index=False)
-    #dist_df = tcremb.annot[args.chain][output_columns].merge(tcremb.annot_dists[args.chain])
-    #dist_df.to_csv(f'{outputs_path}tcremb_dists_{args.chain}.txt', sep='\t', index=False)
+    tcremp.tcremp_dists_count(args.chain)
+    tcremp.tcremp_dists(args.chain)        
+    tcremp.annot[args.chain][output_columns].merge(tcremp.annot_dists[args.chain]).to_csv(f'{outputs_path}tcremp_dists_{args.chain}.txt', sep='\t', index=False)
+    #dist_df = tcremp.annot[args.chain][output_columns].merge(tcremp.annot_dists[args.chain])
+    #dist_df.to_csv(f'{outputs_path}tcremp_dists_{args.chain}.txt', sep='\t', index=False)
     
     ## pca
     print('Stage: PCA calculation')
-    tcremb.tcremb_pca(args.chain)
-    tcremb.annot[args.chain][output_columns].merge(tcremb.pca[args.chain]).to_csv(f'{outputs_path}tcremb_pca_{args.chain}.txt', sep='\t', index=False)
+    tcremp.tcremp_pca(args.chain)
+    tcremp.annot[args.chain][output_columns].merge(tcremp.pca[args.chain]).to_csv(f'{outputs_path}tcremp_pca_{args.chain}.txt', sep='\t', index=False)
     
     ## tsne
     print('Stage: TSNE calculation')
-    tcremb.tcremb_tsne(args.chain)
-    tcremb.annot[args.chain][output_columns].merge(tcremb.tsne[args.chain]).to_csv(f'{outputs_path}tcremb_tsne_{args.chain}.txt', sep='\t', index=False)
+    tcremp.tcremp_tsne(args.chain)
+    tcremp.annot[args.chain][output_columns].merge(tcremp.tsne[args.chain]).to_csv(f'{outputs_path}tcremp_tsne_{args.chain}.txt', sep='\t', index=False)
     
     
     if args.clstr_model!='none':
         logging.info(f'Clustering with model {args.clstr_model}')
         print(f'Stage: Clustering with model {args.clstr_model}')
-        clustering(args, tcremb, outputs_path, output_columns)
+        clustering(args, tcremp, outputs_path, output_columns)
     else:
         print('Finished without clustering')
     
