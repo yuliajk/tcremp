@@ -16,11 +16,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import label_binarize
 from sklearn.neighbors import NearestNeighbors
 
-import tcremb.data_proc as data_proc
-import tcremb.ml_utils as ml_utils
+import tcremp.data_proc as data_proc
+import tcremp.ml_utils as ml_utils
 
 
-class TCRemb_clf():
+class TCRemP_clf():
     def __init__(self, model_name):
         self.model_name = model_name
         self.annotation_id = 'annotId' 
@@ -89,9 +89,9 @@ class TCRemb_clf():
 
     
 
-class TCRemb_clf_pred(TCRemb_clf):
+class TCRemp_clf_pred(TCRemP_clf):
     def __init__(self, model_name):
-        TCRemb_clf.__init__(self,model_name)
+        TCRemP_clf.__init__(self,model_name)
         self.annotation_id = 'annotId'
         self.X_pred = {}
         self.pred = {}
@@ -103,7 +103,7 @@ class TCRemb_clf_pred(TCRemb_clf):
     def clf(self, chain, data, label_cl, model = None, test_size = 0.3, pca_sep_chains=False):
         self.pca_sep_chains=pca_sep_chains
         if model is None:
-            model =  RandomForestClassifier(max_depth=self._TCRemb_clf__max_depth, random_state=7)
+            model =  RandomForestClassifier(max_depth=self._TCRemP_clf__max_depth, random_state=7)
         self.model[chain] = model
             
         y_data = data.annot[chain][data.annot[chain]['data_type']=='train'][label_cl]
@@ -113,7 +113,7 @@ class TCRemb_clf_pred(TCRemb_clf):
             X_data = data.pca[chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
                 
         X_data = X_data[X_data['data_type']=='train'].drop([self.annotation_id, 'data_type'], axis=1, errors = 'ignore')
-        self._TCRemb_clf__clf_model(chain, y_data, X_data, test_size)
+        self._TCRemP_clf__clf_model(chain, y_data, X_data, test_size)
         
     def clf_pred(self, chain, data, label_cl = None):
         

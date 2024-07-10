@@ -16,15 +16,15 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.neighbors import NearestNeighbors
 from kneed import KneeLocator
 
-import tcremb.data_proc as data_proc
-import tcremb.ml_utils as ml_utils
-from tcremb.TCRemb import TCRemb
-from tcremb.TCRemb_clstr import TCRemb_clustering
+import tcremp.data_proc as data_proc
+import tcremp.ml_utils as ml_utils
+from tcremp.TCRemP import TCRemP
+from tcremp.TCRemP_clstr import TCRemP_clustering
 
 
-class TCRemb_vdjdb(TCRemb):
+class TCRemP_vdjdb(TCRemP):
     def __init__(self,run_name, input_data, clonotype_index = None):
-        TCRemb.__init__(self,run_name, input_data, clonotype_index)
+        TCRemP.__init__(self,run_name, input_data, clonotype_index)
         self.clonotypes_pred={}
         #self.vdjdb_path = 'data/VDJdb_pred/vdjdb_data_with_cloneId.txt'
         self.vdjdb_path = { 'TRA' : 'data/VDJdb_pred/vdjdb_data_with_cloneId_TRA.txt', 'TRB' : 'data/VDJdb_pred/vdjdb_data_with_cloneId_TRB.txt',
@@ -52,7 +52,7 @@ class TCRemb_vdjdb(TCRemb):
             
             df = df.merge(df.merge(vdjdb_df)[[self.input_id,self.vdjdb_clonotype_id_dict['TRA_TRB'][chain]]], how='left').reset_index(drop=True)
             t = df[df[self.vdjdb_clonotype_id_dict['TRA_TRB'][chain]].isna()]
-            t = self._TCRemb__assign_clones_ids_paired(t, chain)
+            t = self._TCRemP__assign_clones_ids_paired(t, chain)
             t[self.clonotype_id_dict['TRA_TRB'][chain]] = t[self.clonotype_id_dict['TRA_TRB'][chain]] + (max(self.vdjdb['TRA_TRB'][self.vdjdb_clonotype_id_dict['TRA_TRB'][chain]] +1))
         
             df = df.merge(t[[self.input_id,self.clonotype_id_dict['TRA_TRB'][chain]]],how='left')
@@ -63,7 +63,7 @@ class TCRemb_vdjdb(TCRemb):
             
             df = df.merge(df.merge(self.vdjdb[chain][self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'] + [self.vdjdb_clonotype_id]].drop_duplicates())[[self.input_id,self.vdjdb_clonotype_id]], how='left').reset_index(drop=True)
             t = df[df[self.vdjdb_clonotype_id].isna()]
-            t = self._TCRemb__assign_clones_ids_paired(t, chain)
+            t = self._TCRemP__assign_clones_ids_paired(t, chain)
             t[self.clonotype_id] = t[self.clonotype_id] + (max(self.vdjdb[chain][self.vdjdb_clonotype_id] +1))
         
             df = df.merge(t[[self.input_id,self.clonotype_id]],how='left')
@@ -75,7 +75,7 @@ class TCRemb_vdjdb(TCRemb):
         df = data.copy()
         df = df.merge(df.merge(self.vdjdb[chain][self.tcr_columns_paired[chain] + [self.vdjdb_clonotype_id]].drop_duplicates())[[self.input_id,self.vdjdb_clonotype_id]], how='left').reset_index(drop=True)
         t = df[df[self.vdjdb_clonotype_id].isna()]
-        t = self._TCRemb__assign_clones_ids(t, chain)
+        t = self._TCRemP__assign_clones_ids(t, chain)
         t[self.clonotype_id] = t[self.clonotype_id] + (max(self.vdjdb[chain][self.vdjdb_clonotype_id] +1))
         
         df = df.merge(t[[self.input_id,self.clonotype_id]],how='left')
@@ -83,25 +83,25 @@ class TCRemb_vdjdb(TCRemb):
         return df
     
     
-    def tcremb_clonotypes(self,chain, unique_clonotypes=False):
+    def tcremp_clonotypes(self,chain, unique_clonotypes=False):
         self.time_dict[chain]={}
         df = self.input_data.copy()
         self.vdjdb[chain] = pd.read_csv(self.vdjdb_path[chain],sep='\t')
         #self.vdjdb[chain] = self.vdjdb[chain][self.vdjdb[chain]['antigen.epitope_freq']!='other']
         if (chain=='TRA') or (chain=='TRB'):
             df = df[~df[self.tcr_columns_paired[chain][0]].isna()].reset_index(drop=True)
-            df = self._TCRemb__clonotypes_data_clean(df, chain) #050624
+            df = self._TCRemP__clonotypes_data_clean(df, chain) #050624
             
             df = self.__assign_clone_ids_with_vdjdb(df, chain)
             if unique_clonotypes:
                 df = df.drop_duplicates(self.clonotype_id).reset_index(drop=True)
             df['clone_size'] = df.groupby(self.clonotype_id)[self.input_id].transform('count')
             
-            #050624data_chain_1 = df.rename(self._TCRemb__rename_tcr_columns_paired[chain],axis=1)
+            #050624data_chain_1 = df.rename(self._TCRemP__rename_tcr_columns_paired[chain],axis=1)
             #050624data_chain_1['chain']=chain
             
-            #050624self.clonotypes_pred[chain] = self._TCRemb__clonotypes_prep(data_chain_1,  chain, self.tcr_columns, self.clonotype_id)
-            self.clonotypes_pred[chain] = self._TCRemb__clonotypes_prep(df, chain) #050624
+            #050624self.clonotypes_pred[chain] = self._TCRemP__clonotypes_prep(data_chain_1,  chain, self.tcr_columns, self.clonotype_id)
+            self.clonotypes_pred[chain] = self._TCRemP__clonotypes_prep(df, chain) #050624
             self.clonotypes_pred[chain].to_csv(self.clonotypes_path[chain], sep='\t')
             
             vdjdb = self.vdjdb[chain].copy()
@@ -111,14 +111,14 @@ class TCRemb_vdjdb(TCRemb):
             #df[self.label]='no'
             df[self.data_type]='pred'
             df = pd.concat([vdjdb, df])
-            #050624df_cl = df.rename(self._TCRemb__rename_tcr_columns_paired[chain],axis=1)
+            #050624df_cl = df.rename(self._TCRemP__rename_tcr_columns_paired[chain],axis=1)
             #050624df_cl['chain']=chain
             
-            #050624self.clonotypes[chain] = self._TCRemb__clonotypes_prep(df_cl, chain, self.tcr_columns, self.clonotype_id)
-            self.clonotypes[chain] = self._TCRemb__clonotypes_prep(df, chain) #050624
+            #050624self.clonotypes[chain] = self._TCRemP__clonotypes_prep(df_cl, chain, self.tcr_columns, self.clonotype_id)
+            self.clonotypes[chain] = self._TCRemP__clonotypes_prep(df, chain) #050624
             
             df = df[df[self.clonotype_id].isin(self.clonotypes[chain][self.clonotype_id])]
-            self.annot_input[chain] = self._TCRemb__annot_id(df.reset_index(drop=True), self.annotation_id)
+            self.annot_input[chain] = self._TCRemP__annot_id(df.reset_index(drop=True), self.annotation_id)
 
             
         elif chain=='TRA_TRB':
@@ -136,43 +136,43 @@ class TCRemb_vdjdb(TCRemb):
             
             chain_1 = 'TRA'
             df = self.__assign_clone_ids_with_vdjdb_paired(df, chain_1)
-            df = self._TCRemb__clonotypes_data_clean(df, chain_1) #050624
+            df = self._TCRemP__clonotypes_data_clean(df, chain_1) #050624
             #050624data_chain_1 = df.copy()
-            #050624data_chain_1 = data_chain_1.rename(self._TCRemb__rename_tcr_columns_paired[chain_1],axis=1)
+            #050624data_chain_1 = data_chain_1.rename(self._TCRemP__rename_tcr_columns_paired[chain_1],axis=1)
             #050624data_chain_1['chain']=chain_1
-            #050624self.clonotypes_pred[chain][chain_1] = self._TCRemb__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
-            self.clonotypes_pred[chain][chain_1] = self._TCRemb__clonotypes_prep(df, chain_1) #050624
+            #050624self.clonotypes_pred[chain][chain_1] = self._TCRemP__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            self.clonotypes_pred[chain][chain_1] = self._TCRemP__clonotypes_prep(df, chain_1) #050624
             self.clonotypes_pred[chain][chain_1].to_csv(self.clonotypes_path[chain][chain_1], sep='\t')
             
             #050624vdjdb_1 = vdjdb.copy()
-            #050624vdjdb_1 = vdjdb_1.rename(self._TCRemb__rename_tcr_columns_paired[chain_1],axis=1)
+            #050624vdjdb_1 = vdjdb_1.rename(self._TCRemP__rename_tcr_columns_paired[chain_1],axis=1)
             #050624vdjdb_1['chain']=chain_1
             #050624print(vdjdb_1.head(1))
             #050624data_chain_1 = pd.concat([vdjdb_1, data_chain_1])
             data_chain_1 = pd.concat([vdjdb, df]) #050624
             
-            #050624self.clonotypes[chain][chain_1] = self._TCRemb__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
-            self.clonotypes[chain][chain_1] = self._TCRemb__clonotypes_prep(data_chain_1, chain_1) #050624
+            #050624self.clonotypes[chain][chain_1] = self._TCRemP__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            self.clonotypes[chain][chain_1] = self._TCRemP__clonotypes_prep(data_chain_1, chain_1) #050624
             
             
             chain_1 = 'TRB'
             df = self.__assign_clone_ids_with_vdjdb_paired(df, chain_1)
-            df = self._TCRemb__clonotypes_data_clean(df, chain_1) #050624
+            df = self._TCRemP__clonotypes_data_clean(df, chain_1) #050624
             #050624data_chain_1 = df.copy()
-            #050624data_chain_1 = data_chain_1.rename(self._TCRemb__rename_tcr_columns_paired[chain_1],axis=1)
+            #050624data_chain_1 = data_chain_1.rename(self._TCRemP__rename_tcr_columns_paired[chain_1],axis=1)
             #050624data_chain_1['chain']=chain_1
-            #050624self.clonotypes_pred[chain][chain_1] = self._TCRemb__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
-            self.clonotypes_pred[chain][chain_1] = self._TCRemb__clonotypes_prep(df, chain_1) #050624
+            #050624self.clonotypes_pred[chain][chain_1] = self._TCRemP__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            self.clonotypes_pred[chain][chain_1] = self._TCRemP__clonotypes_prep(df, chain_1) #050624
             self.clonotypes_pred[chain][chain_1].to_csv(self.clonotypes_path[chain][chain_1], sep='\t')
             
             #050624vdjdb_1 = vdjdb.copy()
-            #050624vdjdb_1 = vdjdb_1.rename(self._TCRemb__rename_tcr_columns_paired[chain_1],axis=1)
+            #050624vdjdb_1 = vdjdb_1.rename(self._TCRemP__rename_tcr_columns_paired[chain_1],axis=1)
             #050624vdjdb_1['chain']=chain_1
             #050624data_chain_1 = pd.concat([vdjdb_1, data_chain_1])
             data_chain_1 = pd.concat([vdjdb, df]) #050624
             
-            #050624self.clonotypes[chain][chain_1] = self._TCRemb__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
-            self.clonotypes[chain][chain_1] = self._TCRemb__clonotypes_prep(data_chain_1, chain_1) #050624
+            #050624self.clonotypes[chain][chain_1] = self._TCRemP__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            self.clonotypes[chain][chain_1] = self._TCRemP__clonotypes_prep(data_chain_1, chain_1) #050624
             
             
             df = self.__assign_clone_ids_with_vdjdb_paired(df, chain)
@@ -193,18 +193,18 @@ class TCRemb_vdjdb(TCRemb):
             chain_1 = 'TRB'
             df = df[df[self.clonotype_id_dict[chain_1]].isin(self.clonotypes[chain][chain_1][self.clonotype_id])]
             
-            self.annot_input[chain] = self._TCRemb__annot_id(df.reset_index(drop=True), self.annotation_id)
+            self.annot_input[chain] = self._TCRemP__annot_id(df.reset_index(drop=True), self.annotation_id)
 
         else:
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
             
     
-    def tcremb_dists(self, chain):
+    def tcremp_dists(self, chain):
         
         if (chain=='TRA') or (chain=='TRB'):
-            dists_vdjdb = self._TCRemb__mir_results_proc(chain, self.vdjdb_dists_res_path[chain], self.vdjdb_clonotypes_path[chain], self.clonotype_id)
+            dists_vdjdb = self._TCRemP__mir_results_proc(chain, self.vdjdb_dists_res_path[chain], self.vdjdb_clonotypes_path[chain], self.clonotype_id)
         
-            dists_pred = self._TCRemb__mir_results_proc(chain, self.dists_res_path[chain], self.clonotypes_path[chain], self.clonotype_id)
+            dists_pred = self._TCRemP__mir_results_proc(chain, self.dists_res_path[chain], self.clonotypes_path[chain], self.clonotype_id)
             self.dists_dubs[chain] = pd.concat([dists_vdjdb,dists_pred])
             self.dists[chain] = self.dists_dubs[chain].drop_duplicates(self.clonotype_id).reset_index(drop=True)
             
@@ -217,8 +217,8 @@ class TCRemb_vdjdb(TCRemb):
             self.dists_dubs[chain] = {}
             self.dists[chain] = {}
             chain_1 = 'TRA'
-            dists_vdjdb = self._TCRemb__mir_results_proc(chain_1, self.vdjdb_dists_res_path[chain][chain_1], self.vdjdb_clonotypes_path[chain][chain_1], self.clonotype_id)
-            dists_pred = self._TCRemb__mir_results_proc(chain_1, self.dists_res_path[chain][chain_1], self.clonotypes_path[chain][chain_1], self.clonotype_id)
+            dists_vdjdb = self._TCRemP__mir_results_proc(chain_1, self.vdjdb_dists_res_path[chain][chain_1], self.vdjdb_clonotypes_path[chain][chain_1], self.clonotype_id)
+            dists_pred = self._TCRemP__mir_results_proc(chain_1, self.dists_res_path[chain][chain_1], self.clonotypes_path[chain][chain_1], self.clonotype_id)
             
             self.dists_dubs[chain][chain_1] = pd.concat([dists_vdjdb,dists_pred])
             self.dists[chain][chain_1] = self.dists_dubs[chain][chain_1].drop_duplicates(self.clonotype_id).reset_index(drop=True)  
@@ -226,8 +226,8 @@ class TCRemb_vdjdb(TCRemb):
 
 
             chain_1 = 'TRB'
-            dists_vdjdb = self._TCRemb__mir_results_proc(chain_1, self.vdjdb_dists_res_path[chain][chain_1], self.vdjdb_clonotypes_path[chain][chain_1], self.clonotype_id)
-            dists_pred = self._TCRemb__mir_results_proc(chain_1, self.dists_res_path[chain][chain_1], self.clonotypes_path[chain][chain_1], self.clonotype_id)
+            dists_vdjdb = self._TCRemP__mir_results_proc(chain_1, self.vdjdb_dists_res_path[chain][chain_1], self.vdjdb_clonotypes_path[chain][chain_1], self.clonotype_id)
+            dists_pred = self._TCRemP__mir_results_proc(chain_1, self.dists_res_path[chain][chain_1], self.clonotypes_path[chain][chain_1], self.clonotype_id)
             
             self.dists_dubs[chain][chain_1] = pd.concat([dists_vdjdb,dists_pred])
             self.dists[chain][chain_1] = self.dists_dubs[chain][chain_1].drop_duplicates(self.clonotype_id).reset_index(drop=True)  
@@ -254,9 +254,9 @@ class TCRemb_vdjdb(TCRemb):
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB') 
     
 
-class TCRemb_clustering_pred(TCRemb_clustering):
+class TCRemP_clustering_pred(TCRemP_clustering):
     def __init__(self, model_name, threshold=0.7):
-        TCRemb_clustering.__init__(self,model_name)
+        TCRemP_clustering.__init__(self,model_name)
         self.annotation_id = 'annotId'
         self.data_type = 'data_type'
         #self.n_clusters = {}
@@ -304,9 +304,9 @@ class TCRemb_clustering_pred(TCRemb_clustering):
         #print(f'train median fraction_matched only clusters: {self.train_median_fraction_matched}')
         print(f'train purity:{self.train_purity}')    
 
-class TCRemb_clustering_pred_2(TCRemb_clustering):
+class TCRemP_clustering_pred_2(TCRemP_clustering):
     def __init__(self, model_name, threshold=0.7):
-        TCRemb_clustering.__init__(self,model_name)
+        TCRemP_clustering.__init__(self,model_name)
         self.annotation_id = 'annotId'
         self.data_type = 'data_type'
         #self.n_clusters = {}

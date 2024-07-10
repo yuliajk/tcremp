@@ -4,7 +4,7 @@ import time, os, sys
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import tcremb.ml_utils as ml_utils
+import tcremp.ml_utils as ml_utils
 
 tcr_columns_paired = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ']}
 
@@ -98,19 +98,19 @@ def run_ismart(data_df, chain, output_suf, cpus=2, label = 'antigen.epitope'):
     return ismart_data, t
 
 
-def run_tcremb(data_path, chain, output_suf, skip_scores=False, label = 'antigen.epitope', model='kmeans' ):
+def run_tcremp(data_path, chain, output_suf, skip_scores=False, label = 'antigen.epitope', model='kmeans' ):
     run_name = f'compare_{output_suf}'
     label_cl = label
     
     #cdir = os.getcwd()
-    print('TCRemb clustering')
+    print('tcremp clustering')
 
-    # Run TCRemb
+    # Run tcremp
     t0 = time.time()
     if skip_scores == True:
-            command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --clstr_model {model} --data_id data_id --skip_scores True'
+            command = f'python tcremp_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --clstr_model {model} --data_id data_id --skip_scores True'
     else:
-        command = f'python tcremb_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --clstr_model {model} --data_id data_id'
+        command = f'python tcremp_run.py --input {data_path} --runname {run_name} --chain {chain} --label {label_cl} --clstr_model {model} --data_id data_id'
     print(command)
     os.system(command)
     t1 = time.time()
@@ -118,7 +118,7 @@ def run_tcremb(data_path, chain, output_suf, skip_scores=False, label = 'antigen
 
     print('Elapsed time: {} seconds.'.format(t))
 
-    tcremb_data = pd.read_csv(f'tcremb_outputs/{run_name}/tcremb_clstr_res_{chain}.txt')
-    #tcremb_data.to_csv(f'benchmark/outputs/tcremb_res_{chain}_{output_suf}.txt',sep='\t', index=False)
+    tcremp_data = pd.read_csv(f'tcremp_outputs/{run_name}/tcremp_clstr_res_{chain}.txt')
+    #tcremp_data.to_csv(f'benchmark/outputs/tcremp_res_{chain}_{output_suf}.txt',sep='\t', index=False)
 
-    return tcremb_data, t
+    return tcremp_data, t

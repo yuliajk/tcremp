@@ -16,8 +16,8 @@ import statistics
 #from scipy.spatial.distance import pdist, squareform, cdist
 from sklearn.model_selection import train_test_split
 
-import tcremb.data_proc as data_proc
-import tcremb.ml_utils as ml_utils
+import tcremp.data_proc as data_proc
+import tcremp.ml_utils as ml_utils
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -37,7 +37,7 @@ from mir.comparative import DenseMatcher
 import warnings
 warnings.filterwarnings("ignore")
 
-class TCRemb:
+class TCRemP:
     clonotype_id = 'cloneId'
     annotation_id = 'annotId'
     random_state = 7
@@ -88,10 +88,10 @@ class TCRemb:
         self.__random_state = 7
         self.time_dict = {}
         
-        #self.outputs_path = "tcremb_outputs/" + run_name + '/'
+        #self.outputs_path = "tcremp_outputs/" + run_name + '/'
         self.outputs_path = os.path.join(run_name, '')
         Path(self.outputs_path).mkdir(parents=True, exist_ok=True)
-        logging.basicConfig(filename=f'{self.outputs_path}tcremb_log.log', level=logging.DEBUG)
+        logging.basicConfig(filename=f'{self.outputs_path}tcremp_log.log', level=logging.DEBUG)
         
         os.remove(f'{self.outputs_path}filtered_out_data.txt') if os.path.exists(f'{self.outputs_path}filtered_out_data.txt') else print('')
         
@@ -211,7 +211,7 @@ class TCRemb:
         df = data_proc.filter_segments(df, segments_path=self.segments_path, v = self.tcr_columns_paired[chain][1], j = self.tcr_columns_paired[chain][2], organism=self.species, file_dir=self.outputs_path)
         return df
     
-    def tcremb_clonotypes(self,chain, unique_clonotypes=False):
+    def tcremp_clonotypes(self,chain, unique_clonotypes=False):
         #self.time_dict[chain] = {}
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
@@ -324,7 +324,7 @@ class TCRemb:
         logging.info(f'Mir launch time: {end - start}')
         return res
 
-    def tcremb_dists_count(self, chain, nproc= None, chunk_sz=100):
+    def tcremp_dists_count(self, chain, nproc= None, chunk_sz=100):
         if (chain=='TRA') or (chain=='TRB'):
             lib, db, data_parse = self.__data_parse_mirpy(chain, self.prototypes_path[chain],self.clonotypes_path[chain])
             res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
@@ -347,10 +347,10 @@ class TCRemb:
         res_df = res_df.merge(clonotypes[['id',clonotype_id_str]], on='id').drop('id',axis=1)
         return res_df
             
-    def tcremb_palette(labels_list):
+    def tcremp_palette(labels_list):
         self.palette = ml_utils.make_custom_palette(labels_list)
     
-    def tcremb_dists(self, chain):
+    def tcremp_dists(self, chain):
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         if (chain=='TRA') or (chain=='TRB'):
@@ -400,7 +400,7 @@ class TCRemb:
         #print(f'dist_proc: {end - start}')
         logging.info(f'dist_proc: {end - start}')
 
-    def tcremb_pca(self, chain, n_components = None):
+    def tcremp_pca(self, chain, n_components = None):
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         if n_components is None:
@@ -450,7 +450,7 @@ class TCRemb:
         #print(f'pca: {end - start}')    
         logging.info(f'pca: {end - start}')    
             
-    def tcremb_tsne(self,chain, ):
+    def tcremp_tsne(self,chain, ):
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         self.tsne[chain] = ml_utils.tsne_proc(self.pca[chain] , self.annotation_id, self.__tsne_init, self.__random_state, self.__tsne_perplexity)

@@ -17,11 +17,11 @@ from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.neighbors import NearestNeighbors
 from kneed import KneeLocator
 
-import tcremb.data_proc as data_proc
-import tcremb.ml_utils as ml_utils
-import tcremb.metrics as metrics
+import tcremp.data_proc as data_proc
+import tcremp.ml_utils as ml_utils
+import tcremp.metrics as metrics
 
-class TCRemb_clustering():
+class TCRemP_clustering():
     def __init__(self, model_name, threshold=0.7):
         self.annotation_id = 'annotId'
         self.model_name = model_name
