@@ -25,8 +25,8 @@ import seaborn as sns
 
 import logging
 
-#sys.path.append("../mirpy/")
-sys.path.append("../mirpy/mirpy/")
+sys.path.append("../mirpy/")
+#sys.path.append("../mirpy/mirpy/")
 #from mir.common import parser, Repertoire, SegmentLibrary
 from mir.common.repertoire import Repertoire
 from mir.common.segments import SegmentLibrary
