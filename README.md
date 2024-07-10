@@ -1,212 +1,152 @@
-# TCRemb
-TCRemb is a pakage depeloped for T cell gene receptors comparison.
-TCRemb is in the active development right now.
+# TCRemP
 
-With TCRemb you can:
-- cluster single chain (TRA or TRB) or paired chains (TRA and TRB) clonotypes data
-- visualize similiarity of single chain or paired chains clonotypes with TSNE
-- (In progress) predict bindning epitope of single chain or paired chain clonotypes by clustering of input data with VDJdb database
-- (In progress) train clustering model and predict single chain or paired chains clonotypes data
+TCRemP is a package developed to perform T-cel receptor (TCR) embedding. The package utilizes prototypes, commonly encountered TCRs either sampled from a probabilistic V(D)J rearrangement model (see Murugan et al. 2012) or a large pool of individual TCR repertoires from the population.
 
+The workflow is the following:
+* TCRemP pipeline starts with a selection of ``k`` prototype TCR alpha and beta sequences, then it computes the distances from every of ``n`` input TCR alpha-beta pairs to ``2 * k`` prototypes for V, J and CDR3 regions, resulting in ``6 * k`` parameters (or ``3 * k`` for cases when only one of the chains is present).
+* Resulting distances are treated as embedding co-ordinates and and are subject to principal component analysis (PCA). One can monitor the information conveyed by each PC, whether they are related to features such as Variable or Joining genes, CDR3 region length or a certain epitope.
+> N.B. TCRemP is currently in active development, please submit the below for documentation and a proof-of-concept example.
 
+Using TCRemP one can:
+- perform an embedding for a set of T-cell clonotypes, defined by TCR’s Variable (V) and Joining (J) segment IDs and complementarity determining region 3 (CDR3, amino acid sequence placed at the V-J junction). The embedding is performed by mapping those features to real vectors using similarities to a set of **prototype** TCR sequences
+- embed a set of clones, pairs of TCR alpha and beta chain clonotypes
+- analyze the mapping by performing dimensionality reduction and evaluating principal components (PCs)
+- cluster the embeddings using [DBSCAN](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html) method with parameter selection using knee/elbow method
+- visualize T-cell clone and clonotype embeddings using tSNE, coloring the visualization by user-specified clonotype labels, such as antigen specificities
+- infer cluster that are significantly enriched in certain labels, e.g. TCR motifs belonging to CD8+ T-cell subset or specific to an antigen of interest
 
+Planned features:
+- (in progress) co-embed samples with  [VDJdb database](https://github.com/antigenomics/vdjdb-db) to predict TCRs associated with certain antigens, i.e. “annotate” TCR repertoires
+- (in progress) perform imputation to correctly handle mixed single-/paired-chain data
+- (in progress) implement B-cell receptor (BCR/antibody) prototypes to apply the method to antibody sequencing data
 
-# Instull
-```
-git clone https://github.com/yuliajk/tcr_emb.git
-cd tcr_emb
-conda create -n tcremb_env ipython python=3.11
-conda activate tcremb_env   # or: "source activate tcremb_env" depending on your conda setup
+# Getting started
+
+## Installation procedure
+
+Simply clone the repo via git, make corresponding [conda](https://docs.conda.io/en/latest/) environment and install via [pip](https://pypi.org/project/pip/) with requirements
+
+```{bash}
+git clone https://github.com/yuliajk/tcr_emp.git
+cd tcr_emp
+conda create -n tcremp_env ipython python=3.11
+conda activate tcremp_env   # or: "source activate tcremp_env" depending on your conda setup
 pip install -r requirements.txt
 ```
 
 
-# Input data
-You can use as input data single chain or paired chains datasets:
-- Rep-seq repertuares TRA or TRB data
-- single cell VDJ data
-- Clonotypes databases
+## Preparing the input data
 
-## Input format
-### Common requirements
-1. V and J genes must be provided in a format: TRAV35*01, TRBV11-2*01. If allele is missing, TCRemb will add *01, if allel is *02, it will be replaced with *01
-2. No missing data of any of the columns: V,J or CDR3
-3. No ',' , '.' , ':' , ';' , '*' , '_' , '"' or other special simbols in V, J or CDR3
+The input data typically consists of a table containing clonotypes as defined above, either TCR alpha, or beta, or both. One can additionally tag clonotypes/clones with user-defined ids, e.g. cell barcodes, and labels, e.g. antigen specificity or phenotype. One can also use a custom clonotype table instead of a pre-built set of prototypes (see data/data_prebuilt/VDJdb_data_paired_example.csv).
 
-### Input columns
+  
+### Input format
+
+#### Common requirements
+
+1. V and J segment names should be provided based on [IMGT](https://www.imgt.org/) naming, e.g. ``TRAV35*03`` or ``TRBV11-2``. TCRemP will always use the major allele, so the alleles above will be transformed into ``TRBV*01`` and ``TRBV11*01``  
+2. The data should not contain any missing data for any of the columns: V, J and CDR3. Although for paired-chain format one of the chains may be missing.
+3. There should be no symbols except for 20 amino acids in CDR3s
+
+#### Input columns
 | Column name | Description | Required |
 | ----------- | ----------- | ----------- |
-| a_cdr3aa | TRA chain cdr3 | required |
-| TRAV | TRA V segment | required |
-| TRAJ | TRA J segment | required |
-| b_cdr3aa | TRB chain cdr3 | required |
-| TRBV | TRB V segment | required |
-| TRBJ | TRB J segment | required |
-| data_id | user provided id | no |
-| label | user provided label for clustering | no |
+| a_cdr3aa | TCR alpha chain cdr3 | required |
+| a_v | TCR alpha V segment ID | required |
+| a_j | TCR alphasegment ID | required |
+| b_cdr3aa | TCR beta chain cdr3 | required |
+| b_v | TCR beta V segment | required |
+| b_j | TCR beta J segment | required |
+| clonotype_index | user provided clonotype id, used in  | optional |
+| label | user provided label, used in cluster post-analysis | optional |
 
 
-### Single chain example
-| data_id | a_cdr3aa | TRAV | TRAJ | b_cdr3aa | TRBV | TRBJ| label |
+#### Single chain table example example
+
+Either wide with missing values
+
+| clonotype_index | a_cdr3aa | a_v | a_j | b_cdr3aa | b_v | b_j | label |
 | :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | GACTGCGCATCGTCGG-28   | CAGHTGNQFYF | TRAV35	 | TRAJ49 |   |  |  |  IVTDFSVIK |
 | GACTGCGCATCGTCGG-28   |  |  |   | CASSWGGGSHYGYTF | TRBV11-2  | TRBJ1-2 |  IVTDFSVIK |
 
-### Paired chains example
-| data_id | a_cdr3aa | TRAV | TRAJ | b_cdr3aa | TRBV | TRBJ | label |
+
+#### Paired chain example
+
+A simple wide format
+
+| data_id | a_cdr3aa | a_v | a_j | b_cdr3aa | b_v | b_j | label |
 | :---:   | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | GACTGCGCATCGTCGG-28   | CAGHTGNQFYF | TRAV35	 | TRAJ49 | CASSWGGGSHYGYTF | TRBV11-2  | TRBJ1-2 | IVTDFSVIK |
 
-# Run tcremb
+ 
+## Running TCRemP
 
-## From terminal
-### Basic usege
-In tcr_emb repo directory
-```
-python tcremb_dists.py --input my_input_data.txt --output my_folder --chain TRA_TRB
+### Basic usage
+
+Run the tool as 
+
+```{bash}
+python tcremp_run.py --input my_input_data.txt --output my_folder --chain TRA_TRB
 ```
 
 The command above will:
-- check input data format
-- extrcat TRA clonotypes and TRB clonotypes from my_input_data.txt
-- calculate distance scores for TRA clonotypes and for TRB clonnotypes against deafult set of 3000 TRA and TRB prototypes and save dists tables to my_folder/
-- calculate PCA and save PCA table to my_folder/
-- calculate dbscan clusters and save clusters
+- checks input data format and proofreads the dataset
+- extracts TCR alpha and beta clonotypes from my_input_data.txt
+- calculates distance scores from clonotypes for the built-in set of 3000 prototypes for each chain
+- performs PCA and saves transformed data 
+- runs DBSCAN clustering with parameters min_samples = 2, eps value detected by knee method,  and saves resulting clusters
+All input will be saved in ``my_folder/``
 
+If one runs
 
+```{bash}
+python tcremp_run.py --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
 ```
-python tcremb_dists.py --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
-```
-The command above will do all the same as the first command, but also will save clusters with provided label and cluster label
 
-```
-python tcremb_dists.py --input my_input_data.txt --chain TRA_TRB --clstr_model none
-```
-The command above will skip clustering step and will save the results to directory tcremb_my_input_datatxt/
+the resulting clusters will be saved with both user-provided labels and cluster labels
 
-### Command parametrs
-| parametr | short usage | description | avalable values | required | deafult value |
+The following command will skip the clustering and only save embeddings:
+
+```{bash}
+python tcremp_run.py --input my_input_data.txt --chain TRA_TRB --clstr_model none
+```
+ 
+### Command line parameters
+
+The parameters for running ``tcremp`` main script are the following:
+
+| parameter | short usage | description | available values | required | default value |
 | --- | --- | --- | --- | --- | --- |
-| --input | -i | file with input clonotypes | path to file | yes | - |
-| --chain | -c | single or paired chains | TRA, TRB, TRA_TRB | yes | - |
-| --output | -o | directory to save pipeline outputs | path to directory | no | tcremb_{inputfilename}/ |
+| --input | -i | input clonotype table  | path to file | yes | - |
+| --chain | -c | single or paired clonotype chains | TRA, TRB, TRA_TRB | yes | - |
+| --output | -o | pipeline output folder | path to directory | no | tcremp_{inputfilename}/ |
 | --clstr_model | -m | clustering model to be used: dbscan, kmeans or run without clustering step (value 'none') | none, dbscan, kmeans | no | dbscan |
-| --label | -l | name of column with data clsasses for clustering. if provided, this value will be added to clustering output table and label of each cluster will be defined | str | no | - |
-| --species | -s | subset of built-in prototypes to be used | HomoSapiens, MacacaMulatta | no | HomoSapiens |
-| --n | -n | number of prototypes to be selected for embedding from built-in subset of prototypes or user provided prototypes | integer | no | 3000 |
-| --random | -r | random seed for randomlly selecting of n prototypes. If not provided, first n prototypes are selected | integer | no | 0 |
-| --prototypes_path | -p | path to input prototypes, if user would like to use custom prototypes | path to file | no | - |
-| --data_id | -d | column with user id in input data. if user would like this id to be added to output tables | str | no | - |
+| --label | -l | name of the input file column with data classes for clustering. If provided, this value will be added to clustering output table and label of each cluster will be defined | str | no | - |
+| --species | -s | species of built-in prototypes to be used | HomoSapiens, (MusMusculus - planned) | no | HomoSapiens |
+| --n | -n | number of prototypes to be selected for embedding supplemented prototype table | integer | no | 3000 |
+| --random | -r | random seed for random prototype selection. If not provided or 0, first n prototypes are selected | integer | no | 0 |
+| --prototypes_path | -p | path to the custom input prototype table | path to file | no | - |
+| --clonotype_index | -d | column containing user-provided clonotype id in input data, will be transfered to output tables | str | no | - |
 
-# Outputs
-**Common columns**
-- tcremb_id - assigned identificator to each row of the input table
-- cloneId - identificator of unique extracted clonotype. In case of single chain pipeline, stands for TRA or TRB clonotype, in case of paired chain pipeline stands for paired TRA and TRB clonotype.
+ 
+### Output
+
+All output files will contain the following **common columns**:
+- tcremp_id - assigned identifier to each row of the input table
+- cloneId - identifier of unique extracted clonotype. In case of single chain pipeline, stands for TRA or TRB clonotype, in case of paired chain pipeline stands for paired TRA and TRB clonotype.
+
+The output folder will contain the following files:
 
 | File name | description |
 | --- | --- |
-| tcremb_dists_{chain}.txt | Calculated dists for each input clonotype row in the table. Chain can be: TRA, TRB or TRA_TRB |
-| tcremb_pca_{chain}.txt | Calculated PCA components for each input clonotype row in the table. Chain can be: TRA, TRB or TRA_TRB |
-| tcremb_tsne_{chain}.txt | Calculated TSNE dimentions for each input clonotype row in the table. Chain can be: TRA, TRB or TRA_TRB |
-| tcremb_clstr_res_{chain}.txt | Assigned clusters for each input clonotype row in the table. If cluster is -1, this clonotype did not get into one cluster with any other clonotype. Chain can be: TRA, TRB or TRA_TRB |
+| tcremb_dists_{chain}.txt | Embeddings (the set of distances to prototypes) for each input clonotype row in the table, the chain can be: TRA, TRB or TRA_TRB for paired-chain format  |
+| tcremb_pca_{chain}.txt | Principal components of the embedding, the chain can be: TRA, TRB or TRA_TRB for paired-chain format|
+| tcremb_tsne_{chain}.txt | Calculated tSNE co-ordinates for each input clonotype row in the table, the chain can be: TRA, TRB or TRA_TRB for paired-chain format|
+| tcremb_clstr_res_{chain}.txt | Cluster assignments for each input clonotype row in the table. If the cluster is -1, the clonotype does not belong to any cluster (can be treated as “noise” in some settings). Chain can be: TRA, TRB or TRA_TRB |
 | filtered_out_data.txt | rows that were excluded during data cleansing with exclusion reason |
-| clonotypes_{chain}.txt | Clonotypes extracted from input table with assigned cloneId in single chain pipeline. Chain can be: TRA or TRB |
-| clonotypes_paired_{chain}.txt | Clonotypes extracted from input table with assigned cloneId in paired chain pipeline. Chain can be: TRA or TRB |
-| prototypes{chain}_{n}.txt | Зrototypes on which the dists was calculated. n - number of selected prototypes. Chain can be: TRA or TRB. If file is absent, deafult subset of prototypes was used for calculation|
-| res_{chain}.txt | Raw dists table in single chain pipeline. Chain can be: TRA or TRB |
-| res_paired_{chain}.txt | Raw dists table in paired chain pipeline. Chain can be: TRA or TRB |
-
-
-
-
-# Old desc
-## From Jupyter Notebook
-Assign run_name and label for clustering. Load ypur data
-```
-run_name = 'my_run'
-label = 'antigen.epitope'
-
-data_preped = pd.read_csv('my_data.txt',sep='\t')
-
-```
-
-**Single chain pipeline** 
-
-```
-tcremb = TCRemb.TCRemb(run_name, data_preped)
-tcremb.tcremb_clonotypes('TRA')
-tcremb.tcremb_dists_count('TRA')
-tcremb.tcremb_dists('TRA')
-tcremb.tcremb_pca('TRA')
-tcremb.tcremb_tsne('TRA')
-
-tcremb.tcremb_clonotypes('TRB')
-tcremb.tcremb_dists_count('TRB')
-tcremb.tcremb_dists('TRB')
-tcremb.tcremb_pca('TRB')
-tcremb.tcremb_tsne('TRB')
-```
-
-**Data stored in object**
-```
-tcremb.input_data
-tcremb.annot['TRA']
-tcremb.clonotypes['TRA']
-tcremb.pca['TRA']
-tcremb.pca_clones['TRA']
-tcremb.tsne['TRA']
-tcremb.tsne_tsne['TRA']
-```
-
-**Paired chains pipeline** 
-```
-run_name = 'my_paired_run'
-chain = 'TRA_TRB'
-tcremb_paired = TCRemb.TCRemb(run_name, data_preped)
-tcremb.tcremb_clonotypes(chain)
-tcremb.tcremb_dists_count('TRA')
-tcremb.tcremb_dists_count('TRB')
-tcremb.tcremb_dists('TRA')
-tcremb.tcremb_dists('TRB')
-tcremb.tcremb_pca(chain)
-tcremb.tcremb_tsne(chain)
-
-```
-
-**TSNE visualization**
-Plot by all data instances with clonotypes duplicates. For example all cells or all rows from database
-```
-chain = 'TRA_TRB'
-ml_utils.tsne_plot(pd.merge(tcremb.tsne[chain],tcremb.annot[chain]),  label, f'My_data, {chain}, TSNE colored by {label}')
-```
-Example
-<img width="529" alt="image" src="https://github.com/yuliajk/tcr_emb/assets/74723905/296ab510-8308-4c54-8bc1-d73b600114c0">
-
-
-
-
-Plot by clonotypes with clonotype size - coint of input instances with this clonotype.
-```
-chain = 'TRA_TRB'
-ml_utils.tsne_plot(pd.merge(tcremb.tsne_clones[chain],tcremb.annot[chain]), label_high, f'My_data, {chain}, TSNE colored by {label}', to_size = 'clone_size')
-```
-Example
-<img width="533" alt="image" src="https://github.com/yuliajk/tcr_emb/assets/74723905/6a11a2de-bd98-4d99-817d-5b1bf748a66f">
-
-
-
-**Clustering**
-```
-kmeans = TCRemb.TCRemb_clustering('KMeans')
-chain='TRA'
-kmeans.clstr(chain,tcremb, label)
-```
-You can also pass ypur model with number of clusters
-```
-kmeans = TCRemb.TCRemb_clustering('KMeans')
-chain='TRA'
-n_clusters = 5295
-random_state = 8
-model =  KMeans(n_clusters=n_clusters, random_state=random_state)
-kmeans.clstr(chain,tcremb, label, model)
-```
+| clonotypes_{chain}.txt | Clonotypes used in the single-chain pipeline, chain can be: TRA or TRB |
+| clonotypes_paired\_{chain}.txt | Clonotypes used in the paired-chain pipeline |
+| prototypes{chain}_{n}.txt | prototypes on which the distances was calculated, where n - number of selected prototypes and the chainhain can be: TRA or TRB. The file is absent if default subset of prototypes was used for calculation|
+| res_{chain}.txt | Raw distance table for single chain mapping. Chain can be: TRA or TRB |
+| res_paired_{chain}.txt | Raw distance table for paired chain mapping. Chain can be: TRA or TRB |
