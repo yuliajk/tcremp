@@ -24,12 +24,18 @@ Planned features:
 
 ## Installation procedure
 
-Simply clone the repo via git, make corresponding [conda](https://docs.conda.io/en/latest/) environment and install via [pip](https://pypi.org/project/pip/) with requirements
+One can simply install the software using [pip](https://pypi.org/project/pip/):
+
+```{bash}
+pip install git+https://github.com/antigenomics/tcremp.git@0.0.1
+```
+
+Or clone the repository via git, make corresponding [conda](https://docs.conda.io/en/latest/) and install with requirements:
 
 ```{bash}
 git clone https://github.com/antigenomics/mirpy.git
-git clone https://github.com/yuliajk/tcr_emp.git
-cd tcr_emp
+git clone https://github.com/antigenomics/tcremp.git
+cd tcremp
 conda create -n tcremp_env ipython python=3.11
 conda activate tcremp_env   # or: "source activate tcremp_env" depending on your conda setup
 pip install -r requirements.txt
