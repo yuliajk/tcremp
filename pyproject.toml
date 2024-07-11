@@ -41,3 +41,6 @@ Issues = "https://github.com/yuliajk/tcremp/issues"
 
 [project.scripts]
 tcremp-run = "tcremp.tcremp_run:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
