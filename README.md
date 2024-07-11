@@ -22,25 +22,33 @@ Planned features:
 
 # Getting started
 
-## Installation procedure
+## Installation procedure and first run
 
-One can simply install the software using [pip](https://pypi.org/project/pip/):
+One can simply install the software out-of-the-box using [pip](https://pypi.org/project/pip/) with py3.11:
 
 ```{bash}
 pip install git+https://github.com/antigenomics/tcremp.git
 ```
 
-Or clone the repository via git, make corresponding [conda](https://docs.conda.io/en/latest/) and install with requirements:
+Or, in case of package version issues, clone the repository manually via git, create corresponding [conda](https://docs.conda.io/en/latest/) environment and install:
 
 ```{bash}
-git clone https://github.com/antigenomics/mirpy.git
 git clone https://github.com/antigenomics/tcremp.git
 cd tcremp
 conda create -n tcremp_env ipython python=3.11
-conda activate tcremp_env   # or: "source activate tcremp_env" depending on your conda setup
-pip install -r requirements.txt
+conda activate tcremp_env  # or: "source activate tcremp_env" depending on your conda setup
+pip install .
 ```
 
+Check the installation by running
+
+```{bash}
+tcremp-run -h # note that first run may be slow
+cd $tcremp_repo # navigate to tcremp repository
+tcremp-run -i data/example/VDJdb_data_paired_example.csv -c TRA_TRB -o data/example/results -n 10 -l antigen.epitope
+```
+
+check that there were no errors and the results are stored in ``data/example/results`` folder. One can also go through the ``example.ipynb`` notebook to run and visualize the analysis.
 
 ## Preparing the input data
 
