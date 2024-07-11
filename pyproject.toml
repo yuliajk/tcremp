@@ -40,4 +40,4 @@ Homepage = "https://github.com/yuliajk/tcremp"
 Issues = "https://github.com/yuliajk/tcremp/issues"
 
 [project.scripts]
-tcremp-run = "tcremp:tcremp_run"
+tcremp-run = "tcremp_run:main"
