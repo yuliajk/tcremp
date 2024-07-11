@@ -34,7 +34,7 @@ from mir.common import parser
 from mir.distances import ClonotypeAligner, GermlineAligner
 from mir.comparative import DenseMatcher
 
-from .. import get_resource_path
+from tcremp import get_resource_path
 
 import warnings
 warnings.filterwarnings("ignore")
