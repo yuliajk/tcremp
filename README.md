@@ -27,7 +27,7 @@ Planned features:
 One can simply install the software using [pip](https://pypi.org/project/pip/):
 
 ```{bash}
-pip install git+https://github.com/antigenomics/tcremp.git@0.0.1
+pip install git+https://github.com/antigenomics/tcremp.git
 ```
 
 Or clone the repository via git, make corresponding [conda](https://docs.conda.io/en/latest/) and install with requirements:

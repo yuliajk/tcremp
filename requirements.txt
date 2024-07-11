@@ -1,6 +1,6 @@
 biopython==1.81
 matplotlib==3.7.2
-numpy==1.26.4
+numpy==1.25.1
 olga==1.2.4
 pandas==2.0.3
 python_igraph==0.10.6

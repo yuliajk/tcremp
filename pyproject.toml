@@ -8,7 +8,7 @@ version = "0.0.1"
 authors = [
   { name="yuliajk", email="yulia.mow@gmail.com" },
 ]
-description = "A library for performing T-cel receptor (TCR) embedding"
+description = "A library for performing T-cell receptor (TCR) embedding"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
@@ -20,7 +20,7 @@ dependencies = [
         "mir@git+https://github.com/antigenomics/mirpy.git@0.0.1-mirpy-initial",
 #        "biopython==1.81",
 #        "matplotlib==3.7.2",
-#        "numpy==1.25.1",
+        "numpy==1.26.4",
 #        "olga==1.2.4",
 #        "pandas==2.0.3",
 #        "python_igraph==0.10.6",
