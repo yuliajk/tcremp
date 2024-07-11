@@ -27,12 +27,9 @@ Planned features:
 Simply clone the repo via git, make corresponding [conda](https://docs.conda.io/en/latest/) environment and install via [pip](https://pypi.org/project/pip/) with requirements
 
 ```{bash}
-git clone https://github.com/antigenomics/mirpy.git
-git clone https://github.com/yuliajk/tcr_emp.git
-cd tcr_emp
-conda create -n tcremp_env ipython python=3.11
-conda activate tcremp_env   # or: "source activate tcremp_env" depending on your conda setup
-pip install -r requirements.txt
+conda create -n tcremp ipython python=3.11
+conda activate tcremp   # or: "source activate tcremp_env" depending on your conda setup
+pip install git+https://github.com/yuliajk/tcremp
 ```
 
 
@@ -88,7 +85,7 @@ A simple wide format
 Run the tool as 
 
 ```{bash}
-python tcremp_run.py --input my_input_data.txt --output my_folder --chain TRA_TRB
+tcremp-run --input my_input_data.txt --output my_folder --chain TRA_TRB
 ```
 
 The command above will:
@@ -102,7 +99,7 @@ All input will be saved in ``my_folder/``
 If one runs
 
 ```{bash}
-python tcremp_run.py --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
+tcremp-run --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
 ```
 
 the resulting clusters will be saved with both user-provided labels and cluster labels
@@ -110,7 +107,7 @@ the resulting clusters will be saved with both user-provided labels and cluster 
 The following command will skip the clustering and only save embeddings:
 
 ```{bash}
-python tcremp_run.py --input my_input_data.txt --chain TRA_TRB --clstr_model none
+tcremp-run --input my_input_data.txt --chain TRA_TRB --clstr_model none
 ```
  
 ### Command line parameters
