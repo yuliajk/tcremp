@@ -5,7 +5,7 @@ TCRemP is a package developed to perform T-cel receptor (TCR) embedding. The pac
 The workflow is the following:
 * TCRemP pipeline starts with a selection of ``k`` prototype TCR alpha and beta sequences, then it computes the distances from every of ``n`` input TCR alpha-beta pairs to ``2 * k`` prototypes for V, J and CDR3 regions, resulting in ``6 * k`` parameters (or ``3 * k`` for cases when only one of the chains is present).
 * Resulting distances are treated as embedding co-ordinates and and are subject to principal component analysis (PCA). One can monitor the information conveyed by each PC, whether they are related to features such as Variable or Joining genes, CDR3 region length or a certain epitope.
-> N.B. TCRemP is currently in active development, please submit the below for documentation and a proof-of-concept example.
+> N.B. TCRemP is currently in active development, please see below for the list of features, current documentation, a proof-of-concept example. All encountered bugs can be submitted to the ``issues`` section of the @antigenomics repository.
 
 Using TCRemP one can:
 - perform an embedding for a set of T-cell clonotypes, defined by TCR’s Variable (V) and Joining (J) segment IDs and complementarity determining region 3 (CDR3, amino acid sequence placed at the V-J junction). The embedding is performed by mapping those features to real vectors using similarities to a set of **prototype** TCR sequences
@@ -102,7 +102,7 @@ A simple wide format
 Run the tool as 
 
 ```{bash}
-python tcremp_run.py --input my_input_data.txt --output my_folder --chain TRA_TRB
+tcremp-run --input my_input_data.txt --output my_folder --chain TRA_TRB
 ```
 
 The command above will:
@@ -116,7 +116,7 @@ All input will be saved in ``my_folder/``
 If one runs
 
 ```{bash}
-python tcremp_run.py --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
+tcremp-run --input my_input_data.txt --output my_folder --chain TRA_TRB --label epitope
 ```
 
 the resulting clusters will be saved with both user-provided labels and cluster labels
@@ -124,7 +124,7 @@ the resulting clusters will be saved with both user-provided labels and cluster 
 The following command will skip the clustering and only save embeddings:
 
 ```{bash}
-python tcremp_run.py --input my_input_data.txt --chain TRA_TRB --clstr_model none
+tcremp-run.py --input my_input_data.txt --chain TRA_TRB --clstr_model none
 ```
  
 ### Command line parameters
