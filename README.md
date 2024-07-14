@@ -1,5 +1,5 @@
 # TCRemP
-
+![Splash](data/tcremp_pipeline.png)
 TCRemP is a package developed to perform T-cel receptor (TCR) embedding. The package utilizes prototypes, commonly encountered TCRs either sampled from a probabilistic V(D)J rearrangement model (see Murugan et al. 2012) or a large pool of individual TCR repertoires from the population.
 
 The workflow is the following:
