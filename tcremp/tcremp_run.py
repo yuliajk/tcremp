@@ -3,6 +3,7 @@ from pathlib import Path, PurePath
 import numpy as np
 import pandas as pd
 from time import strftime, gmtime
+import os
 
 import sys
 sys.path.append("../")
@@ -92,10 +93,13 @@ def main():
     args = parser.parse_args()
     
     if args.output:
-        outputs_path= args.output + '/'
+        outputs_path= args.output
     else:
         output = 'tcremp_' + PurePath(args.input).name.replace('.','')
-        outputs_path= "tcremp_outputs/" + output + '/'
+        outputs_path= "tcremp_outputs/" + output
+    
+    outputs_path = os.path.join(outputs_path, '')
+    Path(outputs_path).mkdir(parents=True, exist_ok=True)
     
     logging.basicConfig(filename=f'{outputs_path}tcremp_log.log', level=logging.DEBUG)
     logging.info(f'{datetime.now().strftime("%Y-%m-%d %H:%M:%S")} start of tcremp run {outputs_path}')

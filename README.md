@@ -1,5 +1,5 @@
 # TCRemP
-
+![Splash](data/tcremp_pipeline.png)
 TCRemP is a package developed to perform T-cel receptor (TCR) embedding. The package utilizes prototypes, commonly encountered TCRs either sampled from a probabilistic V(D)J rearrangement model (see Murugan et al. 2012) or a large pool of individual TCR repertoires from the population.
 
 The workflow is the following:
@@ -27,7 +27,9 @@ Planned features:
 One can simply install the software out-of-the-box using [pip](https://pypi.org/project/pip/) with py3.11:
 
 ```{bash}
-pip install git+https://github.com/antigenomics/tcremp.git
+conda create -n tcremp ipython python=3.11
+conda activate tcremp   # or: "source activate tcremp_env" depending on your conda setup
+pip install git+https://github.com/yuliajk/tcremp
 ```
 
 Or, in case of package version issues, clone the repository manually via git, create corresponding [conda](https://docs.conda.io/en/latest/) environment and install:
@@ -124,7 +126,7 @@ the resulting clusters will be saved with both user-provided labels and cluster 
 The following command will skip the clustering and only save embeddings:
 
 ```{bash}
-tcremp-run.py --input my_input_data.txt --chain TRA_TRB --clstr_model none
+tcremp-run --input my_input_data.txt --chain TRA_TRB --clstr_model none
 ```
  
 ### Command line parameters

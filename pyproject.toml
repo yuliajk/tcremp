@@ -45,4 +45,4 @@ Issues = "https://github.com/antigenomics/tcremp/issues"
 tcremp-run = "tcremp.tcremp_run:main"
 
 [tool.hatch.metadata]
-allow-direct-references = true
+allow-direct-references = true 
