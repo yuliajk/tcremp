@@ -37,7 +37,6 @@ dependencies = [
         "kneed==0.8.5"
 ]
 
-
 [project.urls]
 Homepage = "https://github.com/antigenomics/tcremp"
 Issues = "https://github.com/antigenomics/tcremp/issues"

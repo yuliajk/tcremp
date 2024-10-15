@@ -150,11 +150,12 @@ def main():
             sys.exit('Bad input')
 
     # Setup pipeline
-    tcremp = TCRemP.TCRemP(run_name = output_path, input_data = data, 
-                           clonotype_index = args.clonotype_index,
+    tcremp = TCRemP.TCRemP(run_name = output_path, 
+                           input_data = data, 
+                           clonotype_index = index_col,
                            prototypes_path = args.prototypes_path,
-                           n = args.n, 
-                           species = args.species,
+                           n = n_prototypes, 
+                           species = species,
                            prototypes_chain = args.chain, 
                            random_seed=args.random)
     
