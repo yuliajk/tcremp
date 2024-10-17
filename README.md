@@ -5,7 +5,7 @@ TCRemP is a package developed to perform T-cel receptor (TCR) embedding. The pac
 The workflow is the following:
 * TCRemP pipeline starts with a selection of ``k`` prototype TCR alpha and beta sequences, then it computes the distances from every of ``n`` input TCR alpha-beta pairs to ``2 * k`` prototypes for V, J and CDR3 regions, resulting in ``6 * k`` parameters (or ``3 * k`` for cases when only one of the chains is present).
 * Resulting distances are treated as embedding co-ordinates and and are subject to principal component analysis (PCA). One can monitor the information conveyed by each PC, whether they are related to features such as Variable or Joining genes, CDR3 region length or a certain epitope.
-> N.B. TCRemP is currently in active development, please submit the below for documentation and a proof-of-concept example.
+> N.B. TCRemP is currently in active development, please see below for the list of features, current documentation, a proof-of-concept example. All encountered bugs can be submitted to the ``issues`` section of the @antigenomics repository.
 
 Using TCRemP one can:
 - perform an embedding for a set of T-cell clonotypes, defined by TCR’s Variable (V) and Joining (J) segment IDs and complementarity determining region 3 (CDR3, amino acid sequence placed at the V-J junction). The embedding is performed by mapping those features to real vectors using similarities to a set of **prototype** TCR sequences
@@ -22,9 +22,9 @@ Planned features:
 
 # Getting started
 
-## Installation procedure
+## Installation procedure and first run
 
-Simply clone the repo via git, make corresponding [conda](https://docs.conda.io/en/latest/) environment and install via [pip](https://pypi.org/project/pip/) with requirements
+One can simply install the software out-of-the-box using [pip](https://pypi.org/project/pip/) with py3.11:
 
 ```{bash}
 conda create -n tcremp ipython python=3.11
@@ -32,6 +32,25 @@ conda activate tcremp   # or: "source activate tcremp_env" depending on your con
 pip install git+https://github.com/yuliajk/tcremp
 ```
 
+Or, in case of package version issues, clone the repository manually via git, create corresponding [conda](https://docs.conda.io/en/latest/) environment and install:
+
+```{bash}
+git clone https://github.com/antigenomics/tcremp.git
+cd tcremp
+conda create -n tcremp_env ipython python=3.11
+conda activate tcremp_env  # or: "source activate tcremp_env" depending on your conda setup
+pip install .
+```
+
+Check the installation by running
+
+```{bash}
+tcremp-run -h # note that first run may be slow
+cd $tcremp_repo # navigate to tcremp repository
+tcremp-run -i data/example/VDJdb_data_paired_example.csv -c TRA_TRB -o data/example/results -n 10 -l antigen.epitope
+```
+
+check that there were no errors and the results are stored in ``data/example/results`` folder. One can also go through the ``example.ipynb`` notebook to run and visualize the analysis.
 
 ## Preparing the input data
 
