@@ -1,45 +1,21 @@
+import sys, os, time, logging, warnings
+warnings.filterwarnings("ignore")
+
 from pathlib import Path
-import numpy as np
 import pandas as pd
-import math
-
-import sys
-import os
-#sys.path.append("../")
-
-from collections import Counter
-import time
-
-from time import gmtime, strftime
-
-import statistics
-#from scipy.spatial.distance import pdist, squareform, cdist
-from sklearn.model_selection import train_test_split
-
 import tcremp.data_proc as data_proc
 import tcremp.ml_utils as ml_utils
 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import seaborn as sns
-
-import logging
-
 sys.path.append("../mirpy/")
-#sys.path.append("../mirpy/mirpy/")
-#from mir.common import parser, Repertoire, SegmentLibrary
 from mir.common.repertoire import Repertoire
 from mir.common.segments import SegmentLibrary
 from mir.common import parser
 from mir.distances import ClonotypeAligner, GermlineAligner
 from mir.comparative import DenseMatcher
-
 from tcremp import get_resource_path
 
-import warnings
-warnings.filterwarnings("ignore")
 
-class TCRemP:
+class TcrempPipeline:
     clonotype_id = 'cloneId'
     annotation_id = 'annotId'
     random_state = 7
@@ -66,8 +42,6 @@ class TCRemP:
         self.tsne_clones={}
         self.clstr_labels ={}
         self.clsf_labels = {}
-        
-        
         
         self.tcr_columns = ['cdr3aa','v','j','chain']
         #self.tcr_columns_paired = {'TRA':['a_cdr3aa','TRAV','TRAJ'],'TRB':['b_cdr3aa','TRBV','TRBJ']}
@@ -111,11 +85,11 @@ class TCRemP:
         self.input_data = self.__annot_id(self.input_data, self.input_id)
         
         if prototypes_path:
-            self.prototypes_path= { 'TRA' : self.outputs_path + 'prptotypesTRA.txt', 'TRB' : self.outputs_path + 'prptotypesTRB.txt'}
+            self.prototypes_path= { 'TRA' : self.outputs_path + 'prototypes_TRA.txt', 'TRB' : self.outputs_path + 'prototypes_TRB.txt'}
             self.prototypes_prep(prototypes_path)
         
         if n:
-            new_prototypes_path = { 'TRA' : self.outputs_path + f'prptotypesTRA_{n}.txt', 'TRB' : self.outputs_path + f'prptotypesTRB_{n}.txt'}
+            new_prototypes_path = { 'TRA' : self.outputs_path + f'prototypes_TRA_{n}.txt', 'TRB' : self.outputs_path + f'prototypes_TRB_{n}.txt'}
             #print(new_prototypes_path)
             try:
                 if prototypes_chain=='TRA_TRB':
@@ -136,18 +110,17 @@ class TCRemP:
                'TRB':[f'b_{xs}_{x}' for xs in range(n) for x in ['v','j','cdr3']]}
         
         
-    
     def check_proc_input_data(self):
         data_proc.check_columns(self.raw_input_data, self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'])
         self.input_data = data_proc.clean_at_least_cdr3a_or_cdr3b(self.raw_input_data, self.tcr_columns_paired['TRA'][0], self.tcr_columns_paired['TRB'][0], self.outputs_path)
-        self.input_data =  data_proc.remove_asterisk(self.input_data, self.tcr_columns_paired['TRA']) 
-        self.input_data =  data_proc.remove_asterisk(self.input_data, self.tcr_columns_paired['TRB'])
+        self.input_data = data_proc.remove_asterisk(self.input_data, self.tcr_columns_paired['TRA']) 
+        self.input_data = data_proc.remove_asterisk(self.input_data, self.tcr_columns_paired['TRB'])
         self.input_data = data_proc.remove_backslash(self.input_data, self.tcr_columns_paired['TRA'])
         self.input_data = data_proc.remove_backslash(self.input_data, self.tcr_columns_paired['TRB'])
         self.input_data = data_proc.add_allele(self.input_data,self.tcr_columns_paired['TRA'])
         self.input_data = data_proc.add_allele(self.input_data,self.tcr_columns_paired['TRB']) 
-        
-    
+
+
     def prototypes_prep(self, input_file_path):
         prototypes = pd.read_csv(input_file_path, sep='\t')
         prototypes = data_proc.filter_clones_data(prototypes, ['cdr3aa','v','j'], cdr3nt='cdr3nt')
@@ -159,6 +132,7 @@ class TCRemP:
         if len(prototypes_b)>0:
             prototypes_b.reset_index(drop=True).drop('chain',axis=1).to_csv(self.prototypes_path['TRB'], sep='\t')
     
+
     def prototypes_n(self, n, old_path, new_path, random_seed=None):
         #pd.read_csv(self.prototypes_path['TRA'],sep='\t',header=None).sample_n(n).reset_index(drop=True).to_csv('')
         if random_seed:
@@ -166,15 +140,18 @@ class TCRemP:
         else:
             pd.read_csv(old_path,sep='\t',index_col=0).iloc[:n].reset_index(drop=True).to_csv(new_path, sep='\t')
     
+
     def __annot_id(self, data, annotation_id_str):
         df = data.copy()
         df[annotation_id_str]=df.index
         return df
 
+
     def __assign_clones_ids(self, data, chain):
         df = data.copy()
         df[self.clonotype_id]=df.groupby(self.tcr_columns_paired[chain],dropna=False).ngroup()
         return df
+    
     
     def __assign_clones_ids_paired(self, data, chain):
         df = data.copy()
@@ -183,10 +160,8 @@ class TCRemP:
         if chain=='TRA_TRB':
             df[self.clonotype_id]=df.groupby(self.tcr_columns_paired['TRA']+self.tcr_columns_paired['TRB'],dropna=False).ngroup()
         return df
-   
     
     
-    #def __clonotypes_prep(self, clones_df,clonotypes_path, chain, tcr_columns, clonotype_id_str):
     def __clonotypes_prep_old(self, clones_df, chain, tcr_columns, clonotype_id_str):
         clonotypes = clones_df[clones_df['chain']==chain]
         clonotypes = clones_df.copy()
@@ -196,8 +171,8 @@ class TCRemP:
         clonotypes = data_proc.filter_segments(clonotypes, segments_path='../mirpy/mirpy/mir/resources/segments.txt', organism=self.species)
         
         clonotypes = clonotypes[tcr_columns + [clonotype_id_str]].drop_duplicates().reset_index(drop=True)
-        #clonotypes.to_csv(clonotypes_path, sep='\t')
         return clonotypes
+
 
     def __clonotypes_prep(self, clones_df, chain):
         clonotypes = clones_df.copy()
@@ -207,39 +182,31 @@ class TCRemP:
         clonotypes['d']='.' ## 070624
         return clonotypes
     
+
     def __clonotypes_data_clean(self, data, chain):
         df = data.copy()
         df = data_proc.filter_clones_data(df, self.tcr_columns_paired[chain], file_dir=self.outputs_path)
-        #segments_path = mir.__file__.replace('__init__.py','resources/segments.txt')
-        #segments_path = '../mirpy/mirpy/mir/resources/segments.txt'
         df = data_proc.filter_segments(df, segments_path=self.segments_path, v = self.tcr_columns_paired[chain][1], j = self.tcr_columns_paired[chain][2], organism=self.species, file_dir=self.outputs_path)
         return df
     
+
     def tcremp_clonotypes(self,chain, unique_clonotypes=False):
-        #self.time_dict[chain] = {}
-        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
-        
-        #data_tt = self.__filter_segments(chain, self.input_data)
         data_tt = self.input_data.copy()
+
         if (chain=='TRA') or (chain=='TRB'):
             data_tt = data_tt[~data_tt[self.tcr_columns_paired[chain][0]].isna()].reset_index(drop=True)
-            data_tt = self.__clonotypes_data_clean(data_tt, chain) #050624
+            data_tt = self.__clonotypes_data_clean(data_tt, chain)
             
             data_tt = self.__assign_clones_ids(data_tt, chain)
             if unique_clonotypes:
                 data_tt = data_tt.drop_duplicates(self.clonotype_id).reset_index(drop=True)
             data_tt['clone_size'] = data_tt.groupby(self.clonotype_id)[self.input_id].transform('count')
-            #050624data_chain_1 = data_tt.rename(self.__rename_tcr_columns_paired[chain],axis=1)
-            #050624data_chain_1['chain']=chain
-            #self.clonotypes[chain] = self.__clonotypes_prep(data_tt, self.clonotypes_path[chain], chain, self.tcr_columns, self.clonotype_id)
-            #050624self.clonotypes[chain] = self.__clonotypes_prep(data_chain_1,  chain, self.tcr_columns, self.clonotype_id)
-            self.clonotypes[chain] = self.__clonotypes_prep(data_tt, chain) #050624
+            self.clonotypes[chain] = self.__clonotypes_prep(data_tt, chain)
             self.clonotypes[chain].to_csv(self.clonotypes_path[chain], sep='\t')
             
             data_tt = data_tt[data_tt[self.clonotype_id].isin(self.clonotypes[chain][self.clonotype_id])]
-            self.annot_input[chain] = self.__annot_id(data_tt, self.annotation_id)
-            
+            self.annot_input[chain] = self.__annot_id(data_tt, self.annotation_id)        
         elif chain=='TRA_TRB':
             data_tt = data_tt[~data_tt[self.tcr_columns_paired['TRA'][0]].isna()].reset_index(drop=True)
             data_tt = data_tt[~data_tt[self.tcr_columns_paired['TRB'][0]].isna()].reset_index(drop=True)
@@ -247,29 +214,17 @@ class TCRemP:
             
             chain_1 = 'TRA'
             data_tt = self.__assign_clones_ids_paired(data_tt, chain_1)
-            data_tt = self.__clonotypes_data_clean(data_tt, chain_1) #050624
-            #050624data_chain_1 = data_tt.copy()
-            #050624data_chain_1 = data_chain_1.rename(self.__rename_tcr_columns_paired[chain_1],axis=1)
-            #050624data_chain_1['chain']=chain_1
-            #self.clonotypes[chain_1] = self.__clonotypes_prep(data_chain_1, self.clonotypes_path[chain_1], chain_1, self.tcr_columns, self.clonotype_id)
-            #050624self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
-            
-            self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_tt, chain_1) #050624
-            self.clonotypes[chain][chain_1].to_csv(self.clonotypes_path[chain][chain_1], sep='\t')
-            #self.annot_input[chain_1] = self.__annot_id(data_chain_1.reset_index(drop=True), self.annotation_id)                  
+            data_tt = self.__clonotypes_data_clean(data_tt, chain_1)
+
+            self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_tt, chain_1)
+            self.clonotypes[chain][chain_1].to_csv(self.clonotypes_path[chain][chain_1], sep='\t')              
             
             chain_1 = 'TRB'
             data_tt = self.__assign_clones_ids_paired(data_tt, chain_1)
-            data_tt = self.__clonotypes_data_clean(data_tt, chain_1) #050624
-            #050624data_chain_1 = data_tt.copy()
-            #050624data_chain_1 = data_chain_1.rename(self.__rename_tcr_columns_paired[chain_1],axis=1)
-            #050624data_chain_1['chain']=chain_1
-            #self.clonotypes[chain_1] = self.__clonotypes_prep(data_chain_1, self.clonotypes_path[chain_1], chain_1, self.tcr_columns, self.clonotype_id)
-            #050624self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_chain_1, chain_1, self.tcr_columns, self.clonotype_id)
+            data_tt = self.__clonotypes_data_clean(data_tt, chain_1)
             
-            self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_tt, chain_1) #050624
+            self.clonotypes[chain][chain_1] = self.__clonotypes_prep(data_tt, chain_1)
             self.clonotypes[chain][chain_1].to_csv(self.clonotypes_path[chain][chain_1], sep='\t')
-            #self.annot_input[chain_1] = self.__annot_id(data_chain_1.reset_index(drop=True), self.annotation_id)
             
             data_tt = self.__assign_clones_ids_paired(data_tt, chain)
             if unique_clonotypes:
@@ -287,15 +242,11 @@ class TCRemP:
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
             logging.error('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
         
-        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        #self.time_dict[chain]['clonotypes'] = {end - start}
-        #print(f'Clonotypes extraction time: {end - start}')
         logging.info(f'Clonotypes extraction time: {end - start}')
      
    
     def __data_parse_mirpy(self, chain, olga_human_path, clonotypes_path):
-        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         lib = SegmentLibrary.load_default(genes=chain)
         db = Repertoire.load(parser=parser.OlgaParser(), path=olga_human_path)
@@ -304,29 +255,22 @@ class TCRemP:
                                   )
         data_parse = pars.parse(source=clonotypes_path)
         data_parse = [x for x in data_parse if len(x.cdr3aa) in range(7, 23)]
-        #print(data_parse[0:10])
-        
-        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+
         end = time.time()
-        #self.time_dict[chain]['mir_parse'] = {end - start}
-        #print(f'parse data for mir: {end - start}')
         logging.info(f'parse data for mir: {end - start}')
         return lib, db, data_parse
+
 
     def __mir_launch(self, chain, lib, db, data_parse, nproc, chunk_sz):
         aligner = ClonotypeAligner.from_library(lib=lib)
         matcher = DenseMatcher(db, aligner)
         
-        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         res = matcher.match_to_df(data_parse, nproc=nproc)
-        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        #print(np.shape(res))
-        #self.time_dict[chain]['mir_launch'] = {end - start}
-        #print(f'Mir launch time: {end - start}')
         logging.info(f'Mir launch time: {end - start}')
         return res
+
 
     def tcremp_dists_count(self, chain, nproc= None, chunk_sz=100):
         if (chain=='TRA') or (chain=='TRB'):
@@ -343,6 +287,7 @@ class TCRemP:
             res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
             res.to_csv(self.dists_res_path[chain][chain_1], sep='\t', index = False)
     
+
     def __mir_results_proc(self, chain, res_path_chain, clonotypes_path_chain, clonotype_id_str):
         res_df = pd.read_csv(res_path_chain,sep='\t')
         res_df = res_df.set_axis(['id']+self.dist_cols_dist[chain],axis=1)
@@ -351,22 +296,18 @@ class TCRemP:
         res_df = res_df.merge(clonotypes[['id',clonotype_id_str]], on='id').drop('id',axis=1)
         return res_df
             
-    def tcremp_palette(labels_list):
+
+    def tcremp_palette(self, labels_list):
         self.palette = ml_utils.make_custom_palette(labels_list)
     
+
     def tcremp_dists(self, chain):
-        #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         if (chain=='TRA') or (chain=='TRB'):
             self.dists[chain] = self.__mir_results_proc(chain, self.dists_res_path[chain], self.clonotypes_path[chain], self.clonotype_id)
             self.annot[chain] = self.annot_input[chain][self.annot_input[chain][self.clonotype_id].isin(list(self.dists[chain][self.clonotype_id]))].reset_index(drop=True)
-            
             self.annot_dists[chain] = self.dists[chain].merge(self.annot[chain][[self.clonotype_id,self.annotation_id]]).drop(self.clonotype_id, axis=1, errors = 'ignore').sort_values(self.annotation_id).reset_index(drop=True) ##230524
-            
-            #if len(self.clonotype_label_pairs.values()) != 0:
-            #    self.clonotype_label_pairs[chain] = self.clonotype_label_pairs[chain][self.clonotype_label_pairs[chain][self.clonotype_id].isin(list(self.dists[chain][self.clonotype_id]))].reset_index(drop=True)
         elif chain=='TRA_TRB':
-            ## add clonotype_id to dists and filter not processed clones from annot
             self.dists[chain] = {}
             chain_1 = 'TRA'
             self.dists[chain][chain_1] = self.__mir_results_proc(chain_1, self.dists_res_path[chain][chain_1], self.clonotypes_path[chain][chain_1], self.clonotype_id)
@@ -403,6 +344,7 @@ class TCRemP:
         #self.time_dict[chain]['dist_proc'] = {end - start}
         #print(f'dist_proc: {end - start}')
         logging.info(f'dist_proc: {end - start}')
+
 
     def tcremp_pca(self, chain, n_components = None):
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
@@ -453,7 +395,8 @@ class TCRemP:
         #self.time_dict[chain]['pca'] = {end - start}
         #print(f'pca: {end - start}')    
         logging.info(f'pca: {end - start}')    
-            
+
+
     def tcremp_tsne(self,chain, ):
         #print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()

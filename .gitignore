@@ -1,4 +1,6 @@
-/data/example/results
+/data/example/
+!/data/example/VDJdb*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

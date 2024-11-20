@@ -15,16 +15,19 @@ from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
 from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.neighbors import NearestNeighbors
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from kneed import KneeLocator
 
 import tcremp.data_proc as data_proc
 import tcremp.ml_utils as ml_utils
+import tcremp.motif_logo as motif_logo
 import tcremp.metrics as metrics
 
-class TCRemP_clustering():
-    def __init__(self, model_name, threshold=0.7):
+class TcrempClustering():
+    def __init__(self, algo_name='dbscan', threshold=0.7):
         self.annotation_id = 'annotId'
-        self.model_name = model_name
+        self.algo_name = algo_name.lower()
         self.threshold = threshold
         self.clstr_labels = {}
         self.binom_res = {}
@@ -39,7 +42,7 @@ class TCRemP_clustering():
         self.coef_dict = {'TRA':0.75, 'TRB': 0.75,'TRA_TRB':0.85}
         self.label = {}
     
-    def clstr(self, chain, data, label_cl=None, model='dbscan',on_pca=True,knee_coef=None):
+    def build_clusters(self, chain, data, label_cl=None, on_pca=True, knee_coef=None):
         self.annotation_id = data.annotation_id
         self.label[chain] = label_cl
         if knee_coef is None:
@@ -55,21 +58,19 @@ class TCRemP_clustering():
                 X_data = data.dists[chain].copy()
         
         #check_between = False
-        model_name = None
-        if (model == 'kmeans'):
-            self.silhouette_clusters(X_data.drop(data.clonotype_id,axis=1), chain)
-            model_name = model
-            model =  KMeans(n_clusters=self.silhouette_n_clusters[chain], random_state=7)
+        if self.algo_name == 'kmeans':
+            self.silhouette_clusters(X_data.drop(data.clonotype_id, axis=1), chain)
+            algorithm =  KMeans(n_clusters=self.silhouette_n_clusters[chain], random_state=7)
             #check_between = True
-            
-        if model=='dbscan':
-            model_name = model
+        elif self.algo_name == 'dbscan':
             self.knee_coef = knee_coef
             self.eps = {}
             self.eps_by_knn_knee(X_data.drop(data.clonotype_id, axis=1), chain)
-            model = DBSCAN(eps=self.eps[chain], min_samples=2)        
+            algorithm = DBSCAN(eps=self.eps[chain], min_samples=2)
+        else:
+            sys.exit(f'Unknown clustering algorithm "{self.algo_name}".')
         
-        clstr_labels, self.model[chain] = ml_utils.clstr_model(model, X_data , data.clonotype_id)
+        clstr_labels, self.model[chain] = ml_utils.clstr_model(algorithm, X_data , data.clonotype_id)
         self.clstr_labels[chain] = clstr_labels.merge(annot_clones).drop(data.clonotype_id, axis=1)
         
         if self.label[chain] is not None:
@@ -140,7 +141,6 @@ class TCRemP_clustering():
                          xlabel: str =  None,
                          ylabel: str = None,
                         ax=None):
-
         if ax is None:
             fig, ax = plt.subplots(figsize=(7, 7))
 
@@ -171,8 +171,7 @@ class TCRemP_clustering():
                   title: str = "Knee Point",
                   xlabel: str =  None,
                   ylabel: str = None,
-                  ax=None):
-    
+                  ax=None): 
         if ax is None:
             fig, ax = plt.subplots(figsize=(7, 7))
 
@@ -247,7 +246,6 @@ class TCRemP_clustering():
 
         
     def __plot_logo(self, clstr_data, chain, c, list_ax, tcr_columns_paired):
-        
         cluster_df = clstr_data[clstr_data['cluster']==c]
         lengs = cluster_df['cdr3aa_len'].drop_duplicates()
         fr_matched = cluster_df['fraction_matched'].drop_duplicates().reset_index(drop=True)[0]
@@ -271,7 +269,6 @@ class TCRemP_clustering():
         list_ax[2].pie(plot_v_j[tcr_columns_paired[chain][0]],labels=plot_v_j[tcr_columns_paired[chain][2]])       
     
     def __plot_logo_paired(self, clstr_data,chain, c, list_ax):
-    
         cluster_df = clstr_data[clstr_data['cluster']==c]
         fr_matched = cluster_df['fraction_matched'].drop_duplicates().reset_index(drop=True)[0]
         epi = cluster_df['label_cluster'].drop_duplicates().reset_index(drop=True)[0]

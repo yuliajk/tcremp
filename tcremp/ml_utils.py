@@ -5,6 +5,7 @@ from scipy import stats
 import statistics
 
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import matplotlib as mpl
 import seaborn as sns
 
@@ -256,8 +257,6 @@ def silhouette_avg_scores_model(X, range_n_clusters, model_name):
         silhouette_avgs[n_clusters]=silhouette_avg
     return silhouette_avgs
 
-import matplotlib.cm as cm
-
 def silhouette_avg_scores_kmeans_with_plot(X, range_n_clusters):
     silhouette_avgs = {}
     for n_clusters in range_n_clusters:
@@ -330,7 +329,7 @@ def clf_cross_validate(clfs, X_train, y_train):
         pipeline = Pipeline(steps=steps)
         #pipeline.set_params(clf = classifier)
         scores = cross_validate(pipeline, X_train, y_train)
-        print('---------------------------------')
+        print('-----------------------------------')
         print(str(classifier))
         print('-----------------------------------')
         for key, values in scores.items():
@@ -397,41 +396,40 @@ def run_bench_clustering(y_data, X_data, clstr_params):
     return clstr_scores
 
 
-def init_clf_model(model):
-    if model == 'LR':
+def init_clf_model(model_name):
+    if model_name == 'LR':
         from sklearn.linear_model import LogisticRegression
         clf = LogisticRegression(random_state=42)
-    elif model == 'SVM':
+    elif model_name == 'SVM':
         from sklearn.svm import SVC
         clf = SVC()
-    elif model == 'LinearSVC':
+    elif model_name == 'LinearSVC':
         from sklearn.svm import LinearSVC
         clf = LinearSVC()
-    elif model == 'SVM_ovr':
+    elif model_name == 'SVM_ovr':
         from sklearn.svm import SVC
         from sklearn.multiclass import OneVsRestClassifier
         clf = OneVsRestClassifier(SVC())
-    elif model == 'AB':
+    elif model_name == 'AB':
         from sklearn.ensemble import AdaBoostClassifier
         clf = AdaBoostClassifier()
-    elif model == 'KNN':
+    elif model_name == 'KNN':
         from sklearn.neighbors import KNeighborsClassifier
         clf = KNeighborsClassifier()
-    elif model == 'RF':
+    elif model_name == 'RF':
         from sklearn.ensemble import RandomForestClassifier
         clf = RandomForestClassifier()
-    elif model == 'xgboost':
+    elif model_name == 'xgboost':
         from xgboost import XGBClassifier
         clf = XGBClassifier()
-    elif model == 'mlpclassifier':
+    elif model_name == 'mlpclassifier':
         from sklearn.neural_network import MLPClassifier
         clf = MLPClassifier()
     else:
         raise RuntimeError('Unknown classifier')
     return clf
 
-def clf_evaluate_models(X_train, y_train, X_test, y_test, model_params, n_splits = 5, f1_averaged='micro',  scoring_func=None, debug=False):
-    
+def clf_evaluate_models(X_train, y_train, X_test, y_test, model_params, n_splits = 5, f1_averaged='micro',  scoring_func=None, debug=False):   
     skf = StratifiedKFold(n_splits=n_splits, random_state=42, shuffle=True)
     best_clfs = {}
     scores = {'model': [], 'f1': [], 'precision': [] , 'recall': [], 'train_accuracy': [], 'test_accuracy': [], 'params': []}
