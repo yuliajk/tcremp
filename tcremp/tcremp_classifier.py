@@ -11,7 +11,7 @@ from sklearn.preprocessing import label_binarize
 import tcremp.ml_utils as ml_utils
 
 
-class TCRemP_clf():
+class TCRemP_clf:
     def __init__(self, model_name):
         self.model_name = model_name
         self.annotation_id = 'annotId'
@@ -86,11 +86,12 @@ class TCRemp_clf_pred(TCRemP_clf):
         self.pred_proba = {}
         self.clsf_metrics_pred = {}
         self.roc_auc_proba_pred_df = {}
+        self.pca_sep_chains = None
 
     def clf(self, chain, data, label_cl, model=None, test_size=0.3, pca_sep_chains=False):
         self.pca_sep_chains = pca_sep_chains
         if model is None:
-            model = RandomForestClassifier(max_depth=self._TCRemP_clf__max_depth, random_state=7)
+            model = RandomForestClassifier(max_depth=self.__max_depth, random_state=7)
         self.model[chain] = model
 
         y_data = data.annot[chain][data.annot[chain]['data_type'] == 'train'][label_cl]
@@ -100,7 +101,7 @@ class TCRemp_clf_pred(TCRemP_clf):
             X_data = data.pca[chain].merge(data.annot[chain][[self.annotation_id, 'data_type']])
 
         X_data = X_data[X_data['data_type'] == 'train'].drop([self.annotation_id, 'data_type'], axis=1, errors='ignore')
-        self._TCRemP_clf__clf_model(chain, y_data, X_data, test_size)
+        self.__clf_model(chain, y_data, X_data, test_size)
 
     def clf_pred(self, chain, data, label_cl=None):
 
@@ -134,7 +135,6 @@ class TCRemp_clf_pred(TCRemP_clf):
     def roc_auc_pred(self, chain, ax=None, show_legend=True, custom_palette=None):
         classes_list = list(self.model[chain].classes_)
         y_real_curv = label_binarize(self.y_pred_real[chain], classes=classes_list)
-        y_pred_curv = label_binarize(self.pred[chain], classes=classes_list)
 
         roc_auc_proba = ml_utils.roc_auc_count(y_real_curv, self.pred_proba[chain])
         self.roc_auc_proba_pred_df[chain] = pd.DataFrame({'class': classes_list, 'roc_auc': roc_auc_proba.values()})

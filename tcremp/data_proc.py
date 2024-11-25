@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import math
 
@@ -17,7 +16,6 @@ def write_filtered_out(df, file_dir, header=None):
                                                                                                   index=False, mode='a')
 
 
-# ckeck
 def check_columns(data, tcr_columns):
     if not set(tcr_columns).issubset(data.columns):
         raise Exception(f'Incorrect columns names or any column is absent. List of required columns is: {tcr_columns}')
@@ -32,7 +30,7 @@ def clean_at_least_cdr3a_or_cdr3b(data, cdr3a, cdr3b, file_dir=None):
 
 
 # Data processing
-##work on filter_clones_data
+# work on filter_clones_data
 def annot_id(data, annotation_id_str):
     df = data.copy()
     df[annotation_id_str] = df.index
@@ -75,10 +73,10 @@ def filter_clones_data(df_clones, tcr_columns, file_dir=None, cdr3nt=None):
     if file_dir:
         write_filtered_out(df, file_dir, 'CDR3 or V or J is absent or contains invalid character')
 
-    return df[df['filtered_out'] == False].reset_index(drop=True).drop('filtered_out', axis=1)
+    return df[df['filtered_out'] == 0].reset_index(drop=True).drop('filtered_out', axis=1)
 
 
-def filter_segments(df_clones, segments_path='mirpy//mir/resources/segments.txt', v='v', j='j', organism='HomoSapiens',
+def filter_segments(df_clones, segments_path='mirpy/mir/resources/segments.txt', v='v', j='j', organism='HomoSapiens',
                     file_dir=None):
     segs = pd.read_csv(segments_path, sep='\t')
     segs = segs[segs['organism'] == organism]
@@ -89,7 +87,7 @@ def filter_segments(df_clones, segments_path='mirpy//mir/resources/segments.txt'
     if file_dir:
         write_filtered_out(df, file_dir, 'V or J segment is not present in resource segments list for this species:')
 
-    return df[df['filtered_out'] == False].reset_index(drop=True).drop('filtered_out', axis=1)
+    return df[~df['filtered_out']].reset_index(drop=True).drop('filtered_out', axis=1)
 
 
 def freq_labels(label, data_id, data_preped, n=5, tr=3):
@@ -133,9 +131,8 @@ def filter_save_freq_subsets_paired(data, chain, label, samples_n, freq_col_list
         df = data[data[col] != 'other'].drop(freq_col_list, axis=1)
         df.to_csv(v_output_path, sep='\t', index=False)
 
-    ## 10x proc
 
-
+# 10x proc
 def read_barcodes(barcodes_file):
     barcodes = pd.read_csv(barcodes_file, sep='\t', header=None)
     barcodes.columns = ['barcode']
@@ -175,8 +172,7 @@ def get_barcode_top_tetramer(matrix):
     matrix = matrix.sort_values(by=['count'], ascending=False)
     tetramers = matrix.drop_duplicates('barcode')
     tetramers['top_tetramer'] = tetramers['value']
-    tetramers = tetramers[['barcode', 'top_tetramer', 'count']]
-    return tetramers
+    return tetramers[['barcode', 'top_tetramer', 'count']]
 
 
 def norm_logp(data, count_col):

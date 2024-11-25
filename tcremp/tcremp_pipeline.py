@@ -29,12 +29,12 @@ class TcrempPipeline:
         self.segments_path = get_resource_path('segments.txt')
         # self.run_name = run_name
         self.species = species
-        self.clonotypes = {}  ## extracted clonotypes
+        self.clonotypes = {}  # extracted clonotypes
         # self.clonotype_label_pairs = {}
-        self.annot_input = {}  ## raw input
-        self.annot = {}  ## processed input table (cleaned clonotypes, added annotation id and clonotype id)
-        self.dists = {}  ## dists data for clonotypes with clonotype id
-        self.annot_dists = {}  ## annotation id with dists data
+        self.annot_input = {}  # raw input
+        self.annot = {}  # processed input table (cleaned clonotypes, added annotation id and clonotype id)
+        self.dists = {}  # dists data for clonotypes with clonotype id
+        self.annot_dists = {}  # annotation id with dists data
         self.pca_clones = {}
         self.pca = {}
         self.pca_clone_label = {}
@@ -52,7 +52,7 @@ class TcrempPipeline:
         self.clonotype_id = 'cloneId'
         self.clonotyoe_label_id = 'pairId'
         self.input_id = 'inputId'
-        self.annotation_id = 'tcremp_id'  ## index
+        self.annotation_id = 'tcremp_id'  # index
         self.clonotype_id_dict = {'TRA': 'cloneId', 'TRB': 'cloneId',
                                   'TRA_TRB': {'TRA': 'cloneId_TRA', 'TRB': 'cloneId_TRB'}}
 
@@ -139,7 +139,6 @@ class TcrempPipeline:
             prototypes_b.reset_index(drop=True).drop('chain', axis=1).to_csv(self.prototypes_path['TRB'], sep='\t')
 
     def prototypes_n(self, n, old_path, new_path, random_seed=None):
-        # pd.read_csv(self.prototypes_path['TRA'],sep='\t',header=None).sample_n(n).reset_index(drop=True).to_csv('')
         if random_seed:
             pd.read_csv(old_path, sep='\t', index_col=0).sample(n=n, random_state=random_seed).reset_index(
                 drop=True).to_csv(new_path, sep='\t')
@@ -165,18 +164,6 @@ class TcrempPipeline:
             df[self.clonotype_id] = df.groupby(self.tcr_columns_paired['TRA'] + self.tcr_columns_paired['TRB'],
                                                dropna=False).ngroup()
         return df
-
-    def __clonotypes_prep_old(self, clones_df, chain, tcr_columns, clonotype_id_str):
-        clonotypes = clones_df[clones_df['chain'] == chain]
-        clonotypes = clones_df.copy()
-        clonotypes = data_proc.remove_asterisk(clonotypes, tcr_columns)
-        clonotypes = data_proc.remove_backslash(clonotypes, tcr_columns)
-        clonotypes = data_proc.filter_clones_data(clonotypes, tcr_columns)
-        clonotypes = data_proc.filter_segments(clonotypes, segments_path='../mirpy/mirpy/mir/resources/segments.txt',
-                                               organism=self.species)
-
-        clonotypes = clonotypes[tcr_columns + [clonotype_id_str]].drop_duplicates().reset_index(drop=True)
-        return clonotypes
 
     def __clonotypes_prep(self, clones_df, chain):
         clonotypes = clones_df.copy()
@@ -282,16 +269,11 @@ class TcrempPipeline:
             res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
             res.to_csv(self.dists_res_path[chain], sep='\t', index=False)
         elif chain == 'TRA_TRB':
-            chain_1 = 'TRA'
-            lib, db, data_parse = self.__data_parse_mirpy(chain_1, self.prototypes_path[chain_1],
-                                                          self.clonotypes_path[chain][chain_1])
-            res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
-            res.to_csv(self.dists_res_path[chain][chain_1], sep='\t', index=False)
-            chain_1 = 'TRB'
-            lib, db, data_parse = self.__data_parse_mirpy(chain_1, self.prototypes_path[chain_1],
-                                                          self.clonotypes_path[chain][chain_1])
-            res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
-            res.to_csv(self.dists_res_path[chain][chain_1], sep='\t', index=False)
+            for current_chain in ['TRA', 'TRB']:
+                lib, db, data_parse = self.__data_parse_mirpy(current_chain, self.prototypes_path[current_chain],
+                                                              self.clonotypes_path[chain][current_chain])
+                res = self.__mir_launch(chain, lib, db, data_parse, nproc, chunk_sz)
+                res.to_csv(self.dists_res_path[chain][current_chain], sep='\t', index=False)
 
     def __mir_results_proc(self, chain, res_path_chain, clonotypes_path_chain, clonotype_id_str):
         res_df = pd.read_csv(res_path_chain, sep='\t')
@@ -317,60 +299,46 @@ class TcrempPipeline:
                 self.annotation_id).reset_index(drop=True)  ##230524
         elif chain == 'TRA_TRB':
             self.dists[chain] = {}
-            chain_1 = 'TRA'
-            self.dists[chain][chain_1] = self.__mir_results_proc(chain_1, self.dists_res_path[chain][chain_1],
-                                                                 self.clonotypes_path[chain][chain_1],
-                                                                 self.clonotype_id)
-            self.annot[chain] = self.annot_input[chain][
-                self.annot_input[chain][self.clonotype_id_dict[chain][chain_1]].isin(
-                    list(self.dists[chain][chain_1][self.clonotype_id]))].reset_index(drop=True)
-
-            chain_1 = 'TRB'
-            self.dists[chain][chain_1] = self.__mir_results_proc(chain_1, self.dists_res_path[chain][chain_1],
-                                                                 self.clonotypes_path[chain][chain_1],
-                                                                 self.clonotype_id)
-            self.annot[chain] = self.annot_input[chain][
-                self.annot_input[chain][self.clonotype_id_dict[chain][chain_1]].isin(
-                    list(self.dists[chain][chain_1][self.clonotype_id]))].reset_index(drop=True)
+            for current_chain in ['TRA', 'TRB']:
+                self.dists[chain][current_chain] = self.__mir_results_proc(current_chain, self.dists_res_path[chain][current_chain],
+                                                                     self.clonotypes_path[chain][current_chain],
+                                                                     self.clonotype_id)
+                self.annot[chain] = self.annot_input[chain][
+                    self.annot_input[chain][self.clonotype_id_dict[chain][current_chain]].isin(
+                        list(self.dists[chain][current_chain][self.clonotype_id]))].reset_index(drop=True)
 
             ## add annotation id to dists
             dists_data = self.annot[chain][
-                [self.annotation_id, self.clonotype_id] + list(self.clonotype_id_dict[chain].values())]  ##230524
-            annot_clones = dists_data[[self.annotation_id, self.clonotype_id]]  ##230524
+                [self.annotation_id, self.clonotype_id] + list(self.clonotype_id_dict[chain].values())]
+            annot_clones = dists_data[[self.annotation_id, self.clonotype_id]]
 
-            dists_data = dists_data.drop(self.annotation_id, axis=1).drop_duplicates().reset_index(drop=True)  ##230524
+            dists_data = dists_data.drop(self.annotation_id, axis=1).drop_duplicates().reset_index(drop=True)
 
-            chain_1 = 'TRA'  ##230524
-            dists_data_a = dists_data.merge(self.dists[chain][chain_1].rename(
-                {self.clonotype_id_dict[chain_1]: self.clonotype_id_dict[chain][chain_1]}, axis=1))  ##230524
-            dists_data_a = dists_data_a.drop(list(self.clonotype_id_dict[chain].values()), axis=1)  ##230524
+            current_chain = 'TRA'
+            dists_data_a = dists_data.merge(self.dists[chain][current_chain].rename(
+                {self.clonotype_id_dict[current_chain]: self.clonotype_id_dict[chain][current_chain]}, axis=1))
+            dists_data_a = dists_data_a.drop(list(self.clonotype_id_dict[chain].values()), axis=1)
 
-            chain_1 = 'TRB'
-            dists_data_b = dists_data.merge(self.dists[chain][chain_1].rename(
-                {self.clonotype_id_dict[chain_1]: self.clonotype_id_dict[chain][chain_1]}, axis=1))  ##230524
-            dists_data_b = dists_data_b.drop(list(self.clonotype_id_dict[chain].values()), axis=1)  ##230524
+            current_chain = 'TRB'
+            dists_data_b = dists_data.merge(self.dists[chain][current_chain].rename(
+                {self.clonotype_id_dict[current_chain]: self.clonotype_id_dict[chain][current_chain]}, axis=1))
+            dists_data_b = dists_data_b.drop(list(self.clonotype_id_dict[chain].values()), axis=1)
 
-            self.dists[chain]['joined'] = dists_data_a.merge(dists_data_b, on=self.clonotype_id)  ##230524
+            self.dists[chain]['joined'] = dists_data_a.merge(dists_data_b, on=self.clonotype_id)
             self.annot_dists[chain] = self.dists[chain]['joined'].merge(annot_clones).drop(self.clonotype_id,
-                                                                                           axis=1)  ##230524
-
-
+                                                                                           axis=1)
         else:
             print('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
             logging.error('Error. Chain is incorrect. Must be TRA, TRB or TRA_TRB')
 
-        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        # self.time_dict[chain]['dist_proc'] = {end - start}
-        # print(f'dist_proc: {end - start}')
         logging.info(f'dist_proc: {end - start}')
 
     def tcremp_pca(self, chain, n_components=None):
-        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         if n_components is None:
             n_components = self.__n_components
-        if (chain == 'TRA') or (chain == 'TRB'):
+        if chain == 'TRA' or chain == 'TRB':
             self.pca_clones[chain] = ml_utils.pca_proc(self.dists[chain], self.clonotype_id, n_components)
             self.pca[chain] = self.pca_clones[chain].merge(
                 self.annot[chain][[self.clonotype_id, self.annotation_id]]).drop(self.clonotype_id, axis=1,
@@ -386,64 +354,40 @@ class TcrempPipeline:
             annot_clones = dists_data[[self.annotation_id, self.clonotype_id]]
 
             dists_data = dists_data.drop(self.annotation_id, axis=1).drop_duplicates().reset_index(drop=True)
-            chain_1 = 'TRA'
-            self.pca_ad['clones'][chain_1] = ml_utils.pca_proc(self.dists[chain][chain_1], self.clonotype_id,
-                                                               round(n_components)).rename(
-                {self.clonotype_id: self.clonotype_id_dict[chain][chain_1]}, axis=1)
-            self.pca_ad['all'][chain_1] = self.pca_ad['clones'][chain_1].merge(
-                self.annot[chain][[self.clonotype_id_dict[chain][chain_1], self.annotation_id]]).drop(
-                self.clonotype_id_dict[chain][chain_1], axis=1, errors='ignore').sort_values(
-                self.annotation_id).reset_index(drop=True)
-
-            ##230524dists_data_a = dists_data.merge(self.dists[chain][chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
-            ##230524dists_data_a = dists_data_a.drop(list(self.clonotype_id_dict[chain].values()),axis=1)
-            chain_1 = 'TRB'
-            self.pca_ad['clones'][chain_1] = ml_utils.pca_proc(self.dists[chain][chain_1], self.clonotype_id,
-                                                               round(n_components)).rename(
-                {self.clonotype_id: self.clonotype_id_dict[chain][chain_1]}, axis=1)
-            self.pca_ad['all'][chain_1] = self.pca_ad['clones'][chain_1].merge(
-                self.annot[chain][[self.clonotype_id_dict[chain][chain_1], self.annotation_id]]).drop(
-                self.clonotype_id_dict[chain][chain_1], axis=1, errors='ignore').sort_values(
-                self.annotation_id).reset_index(drop=True)
-
-            ##230524dists_data_b = dists_data.merge(self.dists[chain][chain_1].rename({self.clonotype_id_dict[chain_1]:self.clonotype_id_dict[chain][chain_1]},axis=1))
-            ##230524dists_data_b = dists_data_b.drop(list(self.clonotype_id_dict[chain].values()),axis=1)
+            for current_chain in ['TRA', 'TRB']:
+                self.pca_ad['clones'][current_chain] = ml_utils.pca_proc(self.dists[chain][current_chain], self.clonotype_id,
+                                                                         round(n_components)).rename(
+                    {self.clonotype_id: self.clonotype_id_dict[chain][current_chain]}, axis=1)
+                self.pca_ad['all'][current_chain] = self.pca_ad['clones'][current_chain].merge(
+                    self.annot[chain][[self.clonotype_id_dict[chain][current_chain], self.annotation_id]]).drop(
+                    self.clonotype_id_dict[chain][current_chain], axis=1, errors='ignore').sort_values(
+                    self.annotation_id).reset_index(drop=True)
 
             self.pca_ad['clones'][chain] = pd.merge(
-                dists_data.merge(self.pca_ad['clones']['TRA']).drop(list(self.clonotype_id_dict[chain].values()),
-                                                                    axis=1)
-                , dists_data.merge(self.pca_ad['clones']['TRB']).drop(list(self.clonotype_id_dict[chain].values()),
-                                                                      axis=1), on=self.clonotype_id)
+                dists_data.merge(self.pca_ad['clones']['TRA']).drop(
+                    list(self.clonotype_id_dict[chain].values()), axis=1),
+                dists_data.merge(self.pca_ad['clones']['TRB']).drop(
+                    list(self.clonotype_id_dict[chain].values()), axis=1),
+                on=self.clonotype_id)
             self.pca_ad['all'][chain] = self.pca_ad['clones'][chain].merge(annot_clones).drop(self.clonotype_id, axis=1)
 
-            ##230524dists_data = dists_data_a.merge(dists_data_b, on = self.clonotype_id)
-
-            ##230524self.dists[chain]['joined'] = dists_data.copy()
-
             self.pca_clones[chain] = ml_utils.pca_proc(self.dists[chain]['joined'], self.clonotype_id,
-                                                       self.__n_components)
+                                                       n_components)
             self.pca[chain] = self.pca_clones[chain].merge(annot_clones).drop(self.clonotype_id, axis=1)
 
             self.annot[chain] = self.annot[chain][
                 self.annot[chain][self.clonotype_id].isin(list(self.pca_clones[chain][self.clonotype_id]))].reset_index(
                 drop=True)
 
-        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        # self.time_dict[chain]['pca'] = {end - start}
-        # print(f'pca: {end - start}')
         logging.info(f'pca: {end - start}')
 
     def tcremp_tsne(self, chain, ):
-        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         start = time.time()
         self.tsne[chain] = ml_utils.tsne_proc(self.pca[chain], self.annotation_id, self.__tsne_init,
                                               self.__random_state, self.__tsne_perplexity)
         self.tsne_clones[chain] = ml_utils.tsne_proc(self.pca_clones[chain], self.clonotype_id, self.__tsne_init,
                                                      self.__random_state, self.__tsne_perplexity)
 
-        # print(strftime("%Y-%m-%d %H:%M:%S", gmtime()))
         end = time.time()
-        # self.time_dict[chain]['tsne'] = {end - start}
-        # print(f'tsne: {end - start}')
         logging.info(f'tsne: {end - start}')

@@ -1,5 +1,6 @@
 import os
 
+
 def get_resource_path(name=None):
     path = os.path.realpath(__file__)
     directory = os.path.dirname(path)

@@ -1,6 +1,4 @@
 import numpy as np
-import pandas as pd
-import time, os, sys
 
 from sklearn.metrics import precision_recall_fscore_support, classification_report, adjusted_mutual_info_score
 from sklearn.metrics import multilabel_confusion_matrix
@@ -68,7 +66,7 @@ def precision_recall_fscore(df, ytrue, ypred, label):
         epmetrics['accuracy'][labels[i]] = accuracy
         epmetrics['precision'][labels[i]] = precision
         epmetrics['recall'][labels[i]] = recall
-        if ((precision * recall == 0) | (precision + recall == 0)):
+        if (precision * recall == 0) | (precision + recall == 0):
             f = 0
         else:
             f = 2 * (precision * recall) / (precision + recall)
@@ -100,7 +98,7 @@ def precision_recall_fscore(df, ytrue, ypred, label):
     precision = sum(precisions)
     support = sum(supports)
 
-    if ((precision * recall == 0) | (precision + recall == 0)):
+    if (precision * recall == 0) | (precision + recall == 0):
         f = 0
     else:
         f = 2 * (precision * recall) / (precision + recall)
@@ -134,7 +132,8 @@ def get_clustermetrics(data_df, label):
                       counts.keys()}  # Get consistency scores per epitope
 
     return {'purity': round(purity, 2),
-            # 'purity': np.mean(list(binom_res[binom_res['is_cluster']==1]['fraction_matched'])),           # Purity of all clusters weighted equally (frequency)
+            # 'purity': np.mean(list(binom_res[binom_res['is_cluster']==1]['fraction_matched'])),
+            # Purity of all clusters weighted equally (frequency)
 
             'retention': round(len(data_df[data_df['is_cluster'] == 1]) / len(data_df), 2),
             # Proportion of clustered TCRs

@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import f_classif
 from sklearn.manifold import TSNE
+from sklearn.pipeline import Pipeline
 
 from sklearn.metrics import silhouette_samples, silhouette_score
 from sklearn.cluster import KMeans
@@ -41,7 +42,7 @@ def pca_proc(res_df, id_column='id', n_components=100, plot=False):
     pca = PCA(n_components=n_components)
     pca.fit(StandardScaler().fit_transform(data_proc))
 
-    if plot == True:
+    if plot:
         plt.plot(pca.explained_variance_ratio_, 'bx')
         plt.xscale('log')
         plt.ylabel('Explained Variance')
@@ -99,8 +100,8 @@ def tsne_plot(data_plot, to_color, title, to_size=None, legend=True, custom_pale
     ax.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
 
 
-## Metrics
-### to check fraction_matched_exp
+# Metrics
+# to check fraction_matched_exp
 def binominal_test(df, cluster, group, threshold=0.7):
     binom_df = df.copy()
     binom_df['total_cluster'] = binom_df.groupby(cluster)[cluster].transform('count')
@@ -125,12 +126,11 @@ def binominal_test(df, cluster, group, threshold=0.7):
 
 
 def clsf_metrics(y_test, pred, average='micro'):
-    clsf_metrics = {
+    return {
         'f1': f1_score(y_test, pred, average=average),
         'precision': precision_score(y_test, pred, average=average),
         'recall': recall_score(y_test, pred, average=average),
     }
-    return clsf_metrics
 
 
 def count_clstr_purity(binom_res):
@@ -140,14 +140,13 @@ def count_clstr_purity(binom_res):
 
 
 def clstr_metrics(y_data, labels):
-    clstr_metrics = {
+    return {
         'homogeneity_score': homogeneity_score(y_data, labels),
         'completeness_score': completeness_score(y_data, labels),
         'v_measure_score': v_measure_score(y_data, labels),
         'adjusted_rand_score': adjusted_rand_score(y_data, labels),
         'adjusted_mutual_info_score': adjusted_mutual_info_score(y_data, labels),
     }
-    return clstr_metrics
 
 
 ## Clustering
@@ -177,9 +176,7 @@ def generate_negative_pairs(positive_pairs, n, p1_col, p2_col):
     while i < n:
         p1 = positive_pairs.sample(n=1).reset_index(drop=True)
         p2 = positive_pairs.sample(n=1).reset_index(drop=True)
-        pair = {}
-        pair[p1_col] = p1[p1_col][0]
-        pair[p2_col] = p2[p2_col][0]
+        pair = {p1_col: p1[p1_col][0], p2_col: p2[p2_col][0]}
         if (len(positive_pairs[
                     (positive_pairs[p1_col] == pair[p1_col]) & (positive_pairs[p2_col] == pair[p2_col])]) == 0) and (
                 pair not in negative_pairs):
@@ -373,27 +370,19 @@ def init_clstr_model(model_name, r):
 
 
 def bench_clustering(X_data, y_data, model, to_scale=False):
-    # t0 = time()
-    if to_scale == True:
-        estimator = make_pipeline(StandardScaler(), model).fit(data_X)
+    if to_scale:
+        estimator = make_pipeline(StandardScaler(), model).fit(X_data)
     else:
         estimator = make_pipeline(model).fit(X_data)
 
-    # fit_time = time() - t0
-    # results = [model_name, fit_time, estimator[-1].inertia_]
+    clustering_metrics = {'homogeneity_score': homogeneity_score(y_data, estimator[-1].labels_),
+                          'completeness_score': completeness_score(y_data, estimator[-1].labels_),
+                          'v_measure_score': v_measure_score(y_data, estimator[-1].labels_),
+                          'adjusted_rand_score': adjusted_rand_score(y_data, estimator[-1].labels_),
+                          'adjusted_mutual_info_score': adjusted_mutual_info_score(y_data, estimator[-1].labels_),
+                          'silhouette_score': silhouette_score(X_data, estimator[-1].labels_
+                                                               )}
 
-    clustering_metrics = {
-        # 'time' : fit_time,
-        # 'inertia' : estimator[-1].inertia_, ## Birch does not have it
-        'homogeneity_score': homogeneity_score(y_data, estimator[-1].labels_),
-        'completeness_score': completeness_score(y_data, estimator[-1].labels_),
-        'v_measure_score': v_measure_score(y_data, estimator[-1].labels_),
-        'adjusted_rand_score': adjusted_rand_score(y_data, estimator[-1].labels_),
-        'adjusted_mutual_info_score': adjusted_mutual_info_score(y_data, estimator[-1].labels_),
-    }
-
-    clustering_metrics['silhouette_score'] = silhouette_score(X_data, estimator[-1].labels_
-                                                              )
     return clustering_metrics
 
 

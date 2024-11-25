@@ -117,10 +117,5 @@ def plot_amino_logo(seqs, title, ax=None):
             y += score
         x += 1
         maxi = max(maxi, y)
-    # plt.xticks(range(1,x))
     ax.set_xlim((0, x))
     ax.set_ylim((0, maxi))
-    # plt.ylim((0, maxi))
-    # plt.suptitle(title)
-    # plt.tight_layout()
-    # plt.show()
